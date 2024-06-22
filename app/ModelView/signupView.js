@@ -1,6 +1,7 @@
 // viewmodels/signupViewModel.js
 import { useState } from 'react';
 import { signUp } from '../Model/signupModel';
+import { signIn } from '../Model/signinModel';
 import { saveUserData } from '../Model/usersModel';
 
 export const useSignupViewModel = () => {
@@ -13,6 +14,7 @@ export const useSignupViewModel = () => {
     try {
       const { user } = await signUp(email, password);
       await saveUserData(user.uid, { name, email, location });
+      router.push("/View/NewsFeed/Home");
       console.log('User account created & additional data stored!');
       
     } catch (error) {

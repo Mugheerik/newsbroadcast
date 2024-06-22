@@ -7,17 +7,27 @@ import {
   Image,
   Dimensions,
   Animated,
+  Pressable,
 } from "react-native";
 import newwImage from "../assets/images/neww.png";
-import { useNavigation } from "@react-navigation/native";
-import { Link } from "expo-router";
+
+import { Link, useNavigation, Stack } from "expo-router";
 const index = () => {
   const navigation = useNavigation();
+
   // Initial value for logo animation
   // Run the animation only once when the component mounts
 
   return (
     <View style={styles.container}>
+      <Stack.Screen
+        options={{
+
+          title: "",
+          headerStyle: {backgroundColor: "black", },
+          headerTintColor: "#fff",
+        }}
+      />
       <View style={styles.topRight}>
         <View style={[styles.circle, styles.blackCircle]} />
       </View>
@@ -33,14 +43,14 @@ const index = () => {
 
       <View style={styles.buttonContainer}>
         <Link href={"/View/Signin"} asChild>
-          <TouchableOpacity style={styles.button}>
+          <Pressable style={styles.button}>
             <Text style={styles.buttonText}>Signin</Text>
-          </TouchableOpacity>
+          </Pressable>
         </Link>
         <Link href={"/View/Signup"} asChild>
-          <TouchableOpacity style={styles.button}>
+          <Pressable style={styles.button}>
             <Text style={styles.buttonText}>SignUp</Text>
-          </TouchableOpacity>
+          </Pressable>
         </Link>
         <View style={styles.bottomleft}>
           <View style={[styles.circle, styles.blackCircleBottom]} />

@@ -1,8 +1,10 @@
-import React, {useState} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
-import {TextInput, Button} from 'react-native-paper';
+import React, { useState } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { TextInput, Button } from "react-native-paper";
+import { Stack } from "expo-router";
+import { useSignInViewModel } from '../ModelView/signinView';
 
-const Separator = ({text}) => (
+const Separator = ({ text }) => (
   <View style={styles.separatorContainer}>
     <View style={styles.separatorLine} />
     <Text style={styles.separatorText}>{text}</Text>
@@ -11,32 +13,39 @@ const Separator = ({text}) => (
 );
 
 const LoginForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    handleSignIn,
+  } = useSignInViewModel(); 
   const [googleButtonStyle, setGoogleButtonStyle] = useState({
-    backgroundColor: 'white',
-    borderColor: 'black',
-    textColor: 'black',
+    backgroundColor: "white",
+    borderColor: "black",
+    textColor: "black",
   });
 
   const handleGoogleButtonPressIn = () => {
     setGoogleButtonStyle({
-      backgroundColor: 'black',
-      borderColor: 'white',
-      textColor: 'white',
+      backgroundColor: "black",
+      borderColor: "white",
+      textColor: "white",
     });
   };
 
   const handleGoogleButtonPressOut = () => {
     setGoogleButtonStyle({
-      backgroundColor: 'white',
-      borderColor: 'black',
-      textColor: 'black',
+      backgroundColor: "white",
+      borderColor: "black",
+      textColor: "black",
     });
   };
 
   return (
     <View style={styles.container}>
+      
+    
       <View style={styles.header}>
         <Text style={styles.headerText}>Login</Text>
       </View>
@@ -44,50 +53,51 @@ const LoginForm = () => {
         <TextInput
           label="Email"
           value={email}
-          onChangeText={text => setEmail(text)}
+          onChangeText={(text) => setEmail(text)}
           left={
             <TextInput.Icon
               icon="email"
-              rippleColor={'#000000'}
-              color={'#000000'}
+              rippleColor={"#000000"}
+              color={"#000000"}
             />
           }
           mode="outlined"
           style={styles.input}
           theme={{
             colors: {
-              primary: '#000000',
+              primary: "#000000",
             },
           }}
         />
         <TextInput
           label="Password"
           value={password}
-          onChangeText={text => setPassword(text)}
+          onChangeText={(text) => setPassword(text)}
           left={
             <TextInput.Icon
               icon="lock"
-              rippleColor={'#000000'}
-              color={'#000000'}
+              rippleColor={"#000000"}
+              color={"#000000"}
             />
           } // Adjust color and size here
           mode="outlined"
           secureTextEntry
           style={styles.input}
-          theme={{colors: {primary: 'black'}}}
+          theme={{ colors: { primary: "black" } }}
         />
 
         <Button
           mode="contained"
-          onPress={() => console.log('Login pressed')}
+          onPress={handleSignIn}
           style={styles.button}
-          labelStyle={{color: 'white'}}>
+          labelStyle={{ color: "white" }}
+        >
           Login
         </Button>
         <Separator text="OR " />
         <Button
           mode="outlined"
-          onPress={() => console.log('Google Sign Up pressed')}
+          onPress={() => console.log("Google Sign Up pressed")}
           onPressIn={handleGoogleButtonPressIn}
           onPressOut={handleGoogleButtonPressOut}
           style={[
@@ -97,7 +107,8 @@ const LoginForm = () => {
               borderColor: googleButtonStyle.borderColor,
             },
           ]}
-          labelStyle={{color: googleButtonStyle.textColor}}>
+          labelStyle={{ color: googleButtonStyle.textColor }}
+        >
           Sign up with Google
         </Button>
       </View>
@@ -108,45 +119,45 @@ const LoginForm = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
 
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 20,
   },
   headerText: {
     fontSize: 30,
-    fontWeight: 'bold',
-    color: 'black',
+    fontWeight: "bold",
+    color: "black",
   },
   formContainer: {
     paddingHorizontal: 20,
   },
   input: {
     marginVertical: 10,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   button: {
     marginVertical: 10,
     borderRadius: 20,
     padding: 5,
-    backgroundColor: '#242424',
+    backgroundColor: "#242424",
   },
   separatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 10,
   },
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'black',
+    backgroundColor: "black",
   },
   separatorText: {
     marginHorizontal: 10,
-    color: 'black',
-    fontWeight: 'bold',
+    color: "black",
+    fontWeight: "bold",
   },
 });
 
