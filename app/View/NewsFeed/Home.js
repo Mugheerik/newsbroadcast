@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   View,
@@ -10,11 +10,13 @@ import {
   Dimensions,
   Pressable,
   TextInput,
+  FlatList,
+  Image,
 } from "react-native";
-
+import { getDocs, collection } from "firebase/firestore";
+import { db } from "../../../firebaseConfig"; // Adjust path as necessary
+import { getAuth } from "firebase/auth";
 import usePostViewModel from "../../ModelView/postViewModel";
-
-// Import your Firebase/Firestore setup and MVVM related files here
 
 const IndexScreen = () => {
   const {
@@ -29,6 +31,31 @@ const IndexScreen = () => {
     handleCreatePost,
   } = usePostViewModel();
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const user = getAuth().currentUser;
+        if (user) {
+          const querySnapshot = await getDocs(
+            collection(db, "users", user.uid, "posts")
+          );
+          const postsData = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setPosts(postsData);
+        }
+      } catch (error) {
+        console.error("Error fetching posts: ", error);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
   const handlePostCreation = async () => {
     if (file) {
       await handleCreatePost(title, description, file, mediaType);
@@ -37,7 +64,7 @@ const IndexScreen = () => {
       alert("Please select a file.");
     }
   };
-  const [modalVisible, setModalVisible] = useState(false);
+
   const pickFile = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -48,21 +75,36 @@ const IndexScreen = () => {
 
     if (!result.canceled) {
       const selectedFile = result.assets[0];
-      setFile(selectedFile);
+      const fileName = selectedFile.uri.split("/").pop(); // Extract file name from URI
+      setFile({ ...selectedFile, name: fileName }); // Attach the name to the file object
       setMediaType(selectedFile.type);
     }
   };
-  // Fetch data from Firestore on component mount
+
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      {item.mediaUrl && (
+        <Image source={{ uri: item.mediaUrl }} style={styles.cardImage} />
+      )}
+      <Text style={styles.cardTitle}>{item.title}</Text>
+      <Text style={styles.cardDescription}>{item.description}</Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      {/* Plus button in the bottom right corner */}
       <Pressable
         style={styles.plusButton}
         onPress={() => setModalVisible(true)}
       >
         <Text style={styles.plusButtonText}>+</Text>
       </Pressable>
+      <FlatList
+        data={posts}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.postList}
+      />
       <Modal
         animationType="slide"
         transparent={true}
@@ -87,7 +129,6 @@ const IndexScreen = () => {
               <Text style={styles.buttonText}>Pick an Image or Video</Text>
             </TouchableOpacity>
             {file && <Text>{`Selected file: ${file.uri}`}</Text>}
-
             <Button
               style={styles.button}
               title="Post"
@@ -121,17 +162,36 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    width: windowWidth,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   card: {
-    width: "90%",
-    padding: 20,
+    width: windowWidth,
+    padding: 15,
     backgroundColor: "#fff",
     borderRadius: 10,
     shadowColor: "#000",
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 5,
+    marginVertical: 10,
+    alignItems: "center",
+  },
+  cardImage: {
+    width: "100%",
+    height: 200, // Adjust height as needed
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginVertical: 5,
+    textAlign: "center",
+  },
+  cardDescription: {
+    fontSize: 14,
+    textAlign: "center",
   },
   input: {
     borderWidth: 1,
@@ -139,22 +199,15 @@ const styles = StyleSheet.create({
     padding: 10,
     marginVertical: 10,
     borderRadius: 5,
+    width: "100%",
   },
   button: {
-    backgroundColor: "#000",
+    backgroundColor: "black",
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
     marginVertical: 10,
-  },
-  cardImage: {
-    // Style your card image here
-  },
-  cardTitle: {
-    // Style your card title here
-  },
-  cardDescription: {
-    // Style your card description here
+    width: "100%",
   },
   plusButton: {
     position: "absolute",
@@ -171,6 +224,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: "#ffffff",
     fontWeight: "bold",
+  },
+  postList: {
+    width: "100%",
+    paddingHorizontal: 10,
   },
 });
 
