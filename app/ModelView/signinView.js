@@ -11,7 +11,7 @@ export const useSignInViewModel = () => {
     try {
       const userCredential = await signIn(email, password); // Sign in the user
       const userData = await getUserData(userCredential.user.uid);
-      router.push("/View/NewsFeed/Home"); // Get user data from Firestore using the user's UID
+      router.push("/HomeScreen/_layout.tsx"); // Get user data from Firestore using the user's UID
       console.log("User data:", userData);
       console.log("User signed in successfully!");
       // Handle navigation or any other action after sign-in

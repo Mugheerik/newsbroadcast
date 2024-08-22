@@ -15,7 +15,7 @@ export const useSignupViewModel = () => {
     try {
       const { user } = await signUp(email, password);
       await saveUserData(user.uid, { name, email, location });
-      router.push("/View/NewsFeed/Home");
+      router.push("/HomeScreen/_layout.tsx");
       console.log("User account created & additional data stored!");
     } catch (error) {
       console.error("Error signing up:", error);

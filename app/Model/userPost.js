@@ -50,6 +50,7 @@ export async function createPost(title, description, file, mediaType) {
       mediaUrl,
       mediaType,
       createdAt: serverTimestamp(),
+      Approval : "Pending"
     });
     console.log("Post created");
   } catch (error) {
