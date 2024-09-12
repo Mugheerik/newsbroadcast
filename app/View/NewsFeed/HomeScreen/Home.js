@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+} from "react-native";
 import { getDocs, collection } from "firebase/firestore";
 import { db } from "../../../../firebaseConfig"; // Adjust path as necessary
 import { getAuth } from "firebase/auth";
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons for the notification icon
+import { Ionicons } from "@expo/vector-icons"; // Import Ionicons for the notification icon
 
 const Header = () => {
   return (
     <View style={styles.header}>
       <Image
-        source={{ uri: 'https://example.com/your-image.png' }} // Replace with your image URL
+        source={{ uri: "https://example.com/your-image.png" }} // Replace with your image URL
         style={styles.headerImage}
       />
-      <TouchableOpacity style={styles.notificationIcon}>
-        <Ionicons name="notifications-outline" size={24} color="black" />
+      <TouchableOpacity style={styles.drawerItem} >
+        <Text>Log Out</Text>
       </TouchableOpacity>
     </View>
   );
@@ -27,9 +34,7 @@ const IndexScreen = () => {
       try {
         const user = getAuth().currentUser;
         if (user) {
-          const querySnapshot = await getDocs(
-            collection(db, "users", user.uid, "posts")
-          );
+          const querySnapshot = await getDocs(collection(db, "posts"));
           const postsData = querySnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
@@ -121,7 +126,7 @@ const styles = StyleSheet.create({
   },
   cardImage: {
     width: 100, // Adjust width as needed
-    height: 80,  // Adjust height as needed
+    height: 80, // Adjust height as needed
     borderRadius: 5,
   },
   postList: {

@@ -1,15 +1,15 @@
 // DrawerViewModel.js
-import { auth } from ' ../../../firebaseConfig'; // Import your Firebase config
-import { router } from 'expo-router';
-import { SignOut } from '../Model/signinModel'
+import { auth } from " ../../../firebaseConfig"; // Import your Firebase config
+import { router, useRouter } from "expo-router";
+import { SignOut } from "../Model/signinModel";
 
 export const useDrawerViewModel = () => {
   const user = auth.currentUser;
-
+  const router = useRouter();
   const handleLogout = async () => {
     try {
       await SignOut(auth);
-      router.replace('/View/index')
+      router.push("/View/index");
     } catch (error) {
       console.error("Error signing out: ", error);
     }

@@ -22,6 +22,7 @@ const index = () => {
   // Run the animation only once when the component mounts
 
   return (
+    
     <View style={styles.container}>
       <Stack.Screen
         options={{
@@ -60,6 +61,7 @@ const index = () => {
         </View>
       </View>
     </View>
+    
   );
 };
 
