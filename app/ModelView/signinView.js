@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import { signIn } from "../Model/signinModel"; // Assuming you have a similar authModel for sign-in
 import { getUserData } from "../Model/getUserModel"; // Assuming you have a function to retrieve user data
 import { useRouter } from "expo-router";
@@ -11,6 +12,7 @@ export const useSignInViewModel = () => {
     try {
       const userCredential = await signIn(email, password); // Sign in the user
       const userData = await getUserData(userCredential.user.uid);
+
       if (userData.status === "Admin") {
         router.replace("/View/AdminFeed/HomeScreen/Home");
       } else {

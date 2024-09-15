@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 // Import the custom drawer content
 // app/_layout.js
 import { Drawer } from "expo-router/drawer";
-import CustomDrawerContent from "./CustomDrawerContent";
+import CustomDrawerContent from "../AdminFeed/CustomDrawerContent";
 
 export default function Layout() {
   return (
@@ -36,6 +36,8 @@ export default function Layout() {
           ),
         }}
       />
+
+      <Drawer.Screen name="UserProfile" options={{ title: "Edit Profile" }} />
     </Drawer>
   );
 }
