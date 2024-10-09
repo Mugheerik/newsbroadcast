@@ -1,54 +1,66 @@
-import { useState,useEffect } from "react";
-import { updateUserProfile, uploadProfilePicture, updateUserDataInFirestore } from "../Model/profileModel";
-import { getAuth } from "firebase/auth";// Firebase auth
-import { getUserData } from "../Model/getUserModel";
+// ProfileViewModel.js
+import { useState } from 'react';
+import { auth } from "../../firebaseConfig";
+import { uploadProfilePicture, updateUserProfile, updateUserDataInFirestore } from '../Model/profileModel';
 
+// ViewModel for profile operations
 export const useProfileViewModel = () => {
+  const [userData, setUserData] = useState(null);
   const [profilePicture, setProfilePicture] = useState(null);
   const [loading, setLoading] = useState(false);
-  const auth = getAuth();
-  const user = auth.currentUser;
- 
-  const [userData, setUserData] = useState({});
 
-  // Use useEffect to fetch user data only once when the component mounts
-  useEffect(() => {
-    const getData = async () => {
-      if (user) {
-        let userd = await getUserData(user.uid);
-        setUserData(userd);
-      }
-    };
+  // Fetch user data (name, email, photoURL)
+  const fetchUserData = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      setUserData({
+        uid: user.uid,
+        name: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+      });
+      setProfilePicture(user.photoURL);
+    }
+  };
 
-    getData();
-  }, [user]);
-
-  // Function to handle profile update
-  const handleUpdateProfile = async ({ name, location, password }) => {
+  // Upload the image and return the download URL
+  const uploadImageAsync = async (imageUri) => {
     setLoading(true);
     try {
-      let photoURL = profilePicture;
+      const downloadURL = await uploadProfilePicture(imageUri);
+      setProfilePicture(downloadURL);
+      setLoading(false);
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading image: ", error);
+      setLoading(false);
+      return null;
+    }
+  };
 
-      if (profilePicture) {
-        // Upload new profile picture if updated
-        photoURL = await uploadProfilePicture(profilePicture);
+  // Handle profile updates (name, location, password)
+  const handleUpdateProfile = async ({ name, location, password }) => {
+    try {
+      setLoading(true);
+      const user = auth.currentUser;
+      const updatedPhotoURL = profilePicture;
+
+      // Update displayName and photoURL in Firebase Auth
+      await updateUserProfile(name, updatedPhotoURL);
+
+      // Update Firestore data (like location)
+      if (user) {
+        await updateUserDataInFirestore(user.uid, {name, location,profilePicture });
       }
 
-      // Update Firebase Authentication profile
-      await updateUserProfile(name, photoURL);
-
-      // Update Firestore with additional user data
-      await updateUserDataInFirestore(auth.currentUser.uid, { name, location });
-
-      // If the user updates their password, handle it here
+      // Handle password update
       if (password) {
-        await auth.currentUser.updatePassword(password);
+        await user.updatePassword(password);
       }
 
-      console.log("Profile updated successfully");
+      setLoading(false);
     } catch (error) {
       console.error("Error updating profile: ", error);
-    } finally {
       setLoading(false);
     }
   };
@@ -58,6 +70,8 @@ export const useProfileViewModel = () => {
     profilePicture,
     setProfilePicture,
     handleUpdateProfile,
+    uploadImageAsync,
+    fetchUserData,
     loading,
   };
 };

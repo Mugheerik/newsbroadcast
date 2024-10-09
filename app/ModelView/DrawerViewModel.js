@@ -31,7 +31,7 @@ export const useDrawerViewModel = () => {
   const handleLogout = async () => {
     try {
       await SignOut(auth);
-      router.replace("View/SignIn");
+      router.replace("/View/Signin")
     } catch (error) {
       console.error("Error signing out: ", error);
     }

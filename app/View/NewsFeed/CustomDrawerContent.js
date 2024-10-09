@@ -19,8 +19,7 @@ export default function CustomDrawerContent() {
       {/* Dynamic User Info Section */}
       <View style={styles.userInfoContainer}>
         <View style={styles.avatarContainer}>
-          <Image source={{ uri: userData.profilePicture }} style={styles.avatarText} />
-          
+        <Image source={{ uri: userData.profilePicture }} style={styles.profileImage} />
         </View>
         <Text style={styles.userName}>{userData.name}</Text>
         <Text style={styles.userEmail}>{userData.email}</Text>
@@ -66,10 +65,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 10,
   },
-  avatarText: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
   },
   userName: {
     fontSize: 18,

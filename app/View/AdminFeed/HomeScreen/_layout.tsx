@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { View, Button } from 'react-native';
-import { Tabs } from 'expo-router';
-import { AntDesign } from '@expo/vector-icons';
-import Modal from './createpost';
+import React, { useState } from "react";
+import { View, Button } from "react-native";
+import { Tabs } from "expo-router";
+import { AntDesign } from "@expo/vector-icons";
+import Modal from "./createpost";
 
 export default function TabLayout() {
-
   const [isModalVisible, setModalVisible] = useState(false);
 
   const openModal = () => {
@@ -16,35 +15,34 @@ export default function TabLayout() {
     setModalVisible(false);
   };
   return (
-   
-    <Tabs screenOptions={{ tabBarActiveTintColor: 'blue' }}>
+    <Tabs screenOptions={{ tabBarActiveTintColor: "blue" }}>
       <Tabs.Screen
         name="Home"
         options={{
           headerShown: false,
-          tabBarIcon: ({ }) => <AntDesign size={28} name="home" color={"black"} />,
+          tabBarIcon: ({}) => (
+            <AntDesign size={28} name="home" color={"black"} />
+          ),
         }}
       />
-        
+
       <Tabs.Screen
         name="createpost"
         options={{
-          
-          tabBarIcon: ({ }) => <AntDesign size={28} name="pluscircle" color={"black"} />,
+          headerShown: false,
+          tabBarIcon: ({}) => (
+            <AntDesign size={28} name="pluscircle" color={"black"} />
+          ),
         }}
-       
       />
       <Tabs.Screen
-        name="myPosts"
+        name="Pending"
         options={{
-          
-          tabBarIcon: ({ }) => <AntDesign size={28} name="user" color={"black"} />,
+          tabBarIcon: ({}) => (
+            <AntDesign size={28} name="user" color={"black"} />
+          ),
         }}
-       
       />
     </Tabs>
-
-    
-    
   );
 }

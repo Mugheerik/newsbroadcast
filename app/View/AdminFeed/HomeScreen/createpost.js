@@ -11,6 +11,7 @@ import {
 import usePostViewModel from "../../../ModelView/postViewModel";
 import * as ImagePicker from "expo-image-picker";
 
+
 const PostPage = ({ onClose }) => {
   const {
     title,
