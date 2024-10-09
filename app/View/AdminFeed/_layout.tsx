@@ -38,6 +38,7 @@ export default function Layout() {
       />
 
       <Drawer.Screen name="UserProfile" options={{ title: "Edit Profile" }} />
+      
     </Drawer>
   );
 }

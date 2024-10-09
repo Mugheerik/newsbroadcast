@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react";
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
+
 import {
   View,
   Text,
@@ -19,6 +22,7 @@ const index = () => {
   // Run the animation only once when the component mounts
 
   return (
+    
     <View style={styles.container}>
       <Stack.Screen
         options={{
@@ -57,6 +61,7 @@ const index = () => {
         </View>
       </View>
     </View>
+    
   );
 };
 
