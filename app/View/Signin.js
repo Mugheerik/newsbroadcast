@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { TextInput, Button } from "react-native-paper";
-import { Stack } from "expo-router";
-import { useSignInViewModel } from '../ModelView/signinView';
+import { View, Text, StyleSheet, TextInput } from "react-native";
+import { Button } from "react-native-paper";
+import { MaterialIcons, FontAwesome } from "@expo/vector-icons"; // Importing icons
+import { useSignInViewModel } from "../ModelView/signinView";
 
 const Separator = ({ text }) => (
   <View style={styles.separatorContainer}>
@@ -13,13 +13,8 @@ const Separator = ({ text }) => (
 );
 
 const LoginForm = () => {
-  const {
-    email,
-    setEmail,
-    password,
-    setPassword,
-    handleSignIn,
-  } = useSignInViewModel(); 
+  const { email, setEmail, password, setPassword, handleSignIn } =
+    useSignInViewModel();
   const [googleButtonStyle, setGoogleButtonStyle] = useState({
     backgroundColor: "white",
     borderColor: "black",
@@ -44,47 +39,36 @@ const LoginForm = () => {
 
   return (
     <View style={styles.container}>
-      
-    
       <View style={styles.header}>
         <Text style={styles.headerText}>Login</Text>
       </View>
       <View style={styles.formContainer}>
-        <TextInput
-          label="Email"
-          value={email}
-          onChangeText={(text) => setEmail(text)}
-          left={
-            <TextInput.Icon
-              icon="email"
-              rippleColor={"#000000"}
-              color={"#000000"}
-            />
-          }
-          mode="outlined"
-          style={styles.input}
-          theme={{
-            colors: {
-              primary: "#000000",
-            },
-          }}
-        />
-        <TextInput
-          label="Password"
-          value={password}
-          onChangeText={(text) => setPassword(text)}
-          left={
-            <TextInput.Icon
-              icon="lock"
-              rippleColor={"#000000"}
-              color={"#000000"}
-            />
-          } // Adjust color and size here
-          mode="outlined"
-          secureTextEntry
-          style={styles.input}
-          theme={{ colors: { primary: "black" } }}
-        />
+        <View style={styles.inputWrapper}>
+          <MaterialIcons
+            name="email"
+            size={24}
+            color="black"
+            style={styles.icon}
+          />
+          <TextInput
+            placeholder="Email"
+            value={email}
+            onChangeText={(text) => setEmail(text)}
+            style={styles.input}
+            keyboardType="email-address"
+          />
+        </View>
+
+        <View style={styles.inputWrapper}>
+          <FontAwesome name="lock" size={24} color="black" style={styles.icon} />
+          <TextInput
+            placeholder="Password"
+            value={password}
+            onChangeText={(text) => setPassword(text)}
+            style={styles.input}
+            secureTextEntry
+          />
+        </View>
 
         <Button
           mode="contained"
@@ -94,7 +78,9 @@ const LoginForm = () => {
         >
           Login
         </Button>
-        <Separator text="OR " />
+
+        <Separator text="OR" />
+
         <Button
           mode="outlined"
           onPress={() => console.log("Google Sign Up pressed")}
@@ -109,7 +95,7 @@ const LoginForm = () => {
           ]}
           labelStyle={{ color: googleButtonStyle.textColor }}
         >
-          Sign up with Google
+          Sign in with Google
         </Button>
       </View>
     </View>
@@ -125,6 +111,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     padding: 20,
+    marginTop: 50,
   },
   headerText: {
     fontSize: 30,
@@ -134,9 +121,21 @@ const styles = StyleSheet.create({
   formContainer: {
     paddingHorizontal: 20,
   },
-  input: {
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 10,
-    backgroundColor: "white",
+    borderColor: "#000000",
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+  },
+  icon: {
+    paddingRight: 10,
+  },
+  input: {
+    flex: 1,
+    height: 40,
   },
   button: {
     marginVertical: 10,
