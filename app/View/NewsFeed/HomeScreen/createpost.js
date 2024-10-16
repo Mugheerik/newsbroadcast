@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import usePostViewModel from "../../../ModelView/postViewModel";
 import * as ImagePicker from "expo-image-picker";
+import { Video } from "expo-av";
 
 const PostPage = ({ onClose }) => {
   const {
@@ -59,58 +60,53 @@ const PostPage = ({ onClose }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <TextInput
-          style={styles.input}
-          placeholder="Title"
-          value={title}
-          onChangeText={setTitle}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Description"
-          value={description}
-          onChangeText={setDescription}
-        />
-        <TouchableOpacity style={styles.button} onPress={pickFile}>
-          <Text style={styles.buttonText}>Pick an Image or Video</Text>
-        </TouchableOpacity>
-        {file && <Text>{`Selected file: ${file.uri}`}</Text>}
-        <Button
-          style={styles.button}
-          title="Post"
-          onPress={handlePostCreation}
-        />
-        <Button
-          style={styles.button}
-          title="Cancel"
-          onPress={handleCancelAndClear}
-        />
-      </View>
+      <TextInput
+        style={styles.input}
+        placeholder="Title"
+        value={title}
+        onChangeText={setTitle}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Description"
+        value={description}
+        onChangeText={setDescription}
+      />
+      <TouchableOpacity style={styles.button} onPress={pickFile}>
+        <Text style={styles.buttonText}>Pick an Image or Video</Text>
+      </TouchableOpacity>
+      
+      {file && (
+        <View style={styles.mediaPreview}>
+          {mediaType.startsWith("image/") ? (
+            <Image source={{ uri: file.uri }} style={styles.previewImage} />
+          ) : (
+            <Video
+              source={{ uri: file.uri }}
+              style={styles.previewVideo}
+              useNativeControls
+              resizeMode="contain"
+              isLooping
+            />
+          )}
+        </View>
+      )}
+
+      <Button title="Post" onPress={handlePostCreation} color="#28a745" />
+      <Button title="Cancel" onPress={handleCancelAndClear} color="#dc3545" />
     </View>
   );
 };
 
 const windowWidth = Dimensions.get("window").width;
-const windowHeight = Dimensions.get("window").height;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.1)", // Light background color
-  },
-  card: {
-    width: windowWidth - 40,
-    padding: 15,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
-    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#f8f9fa", // Light background color for better contrast
   },
   input: {
     borderWidth: 1,
@@ -119,6 +115,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderRadius: 5,
     width: "100%",
+    backgroundColor: "#fff", // White background for inputs
   },
   button: {
     backgroundColor: "black",
@@ -130,6 +127,20 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
+  },
+  mediaPreview: {
+    marginVertical: 10,
+    alignItems: "center",
+  },
+  previewImage: {
+    width: windowWidth - 40,
+    height: 200,
+    borderRadius: 8,
+  },
+  previewVideo: {
+    width: windowWidth - 40,
+    height: 200,
+    borderRadius: 8,
   },
 });
 

@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, StyleSheet, Image } from "react-native";
-import { collection, onSnapshot, doc, getDoc, addDoc } from "firebase/firestore"; // Add addDoc for saving posts directly to the main collection
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+} from "react-native";
+import { collection, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../../firebaseConfig"; // Adjust path as necessary
 import { getAuth } from "firebase/auth";
+import { Video } from "expo-av"; // Import Video component for video playback
 
 const Myposts = () => {
   const [posts, setPosts] = useState([]);
@@ -45,30 +52,26 @@ const Myposts = () => {
     }
   }, []);
 
-
-
   const renderItem = ({ item }) => {
     const postDate = item.createdAt ? item.createdAt.toDate() : null;
     const formattedDate = postDate ? postDate.toLocaleString() : "No date available";
 
     return (
       <View style={styles.card}>
-        {/* Approval Status Banner */}
-        <View
-          style={[
-            styles.statusBanner,
-            { backgroundColor: item.approved ? "green" : "red" },
-          ]}
-        >
-          <Text style={styles.statusText}>
-            {item.approved ? "Approved" : "Not Approved"}
-          </Text>
-        </View>
         <View style={styles.cardContent}>
-          {/* Post Image */}
-          {item.mediaUrl && (
+          {/* Post Media */}
+          {item.mediaUrl && item.mediaUrl.endsWith(".mp4") ? (
+            <Video
+              source={{ uri: item.mediaUrl }}
+              style={styles.cardVideo}
+              resizeMode="contain"
+              shouldPlay={false} // Set to true if you want the video to autoplay
+              isLooping
+            />
+          ) : (
             <Image source={{ uri: item.mediaUrl }} style={styles.cardImage} />
           )}
+
           {/* User Details and Post Info */}
           <View style={styles.infoContainer}>
             <View style={styles.userDetails}>
@@ -116,22 +119,17 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  statusBanner: {
-    width: "100%",
-    paddingVertical: 5,
-    alignItems: "center",
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-  },
-  statusText: {
-    color: "#ffffff",
-    fontWeight: "bold",
-  },
   cardContent: {
     flexDirection: "row",
     padding: 10,
   },
   cardImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  cardVideo: {
     width: 80,
     height: 80,
     borderRadius: 10,
