@@ -5,19 +5,12 @@ import {
   FlatList,
   StyleSheet,
   Image,
-  TouchableOpacity,
 } from "react-native";
-import {
-  collection,
-  onSnapshot,
-  updateDoc,
-  doc,
-  getDoc, // Import getDoc to retrieve documents
-} from "firebase/firestore";
+import { collection, onSnapshot, doc, getDoc } from "firebase/firestore"; // Import getDoc
 import { db } from "../../../../firebaseConfig"; // Adjust path as necessary
 import { getAuth } from "firebase/auth";
-import { FontAwesome } from "@expo/vector-icons"; // Icons for heart and favorite buttons
 import moment from "moment"; // To format timestamps
+import { Video } from "expo-av"; // Ensure you import Video if you are using it
 
 const Myposts = () => {
   const [posts, setPosts] = useState([]);
@@ -38,7 +31,7 @@ const Myposts = () => {
           // Fetch user details for each post
           postsData.forEach(async (post) => {
             const userRef = doc(db, "users", post.userId); // Assuming each post has a userId field
-            const userDoc = await getDoc(userRef); // Use getDoc instead of get
+            const userDoc = await getDoc(userRef); // Use getDoc instead of userRef.get()
             if (userDoc.exists()) {
               setUserDetails((prev) => ({
                 ...prev,
@@ -47,7 +40,11 @@ const Myposts = () => {
             }
           });
 
-          setPosts(postsData);
+          // Sort posts by createdAt in descending order
+          const sortedPosts = postsData.sort(
+            (a, b) => b.createdAt - a.createdAt
+          );
+          setPosts(sortedPosts);
         },
         (error) => {
           console.error("Error fetching posts: ", error);
@@ -58,28 +55,11 @@ const Myposts = () => {
     }
   }, []);
 
-  // Function to handle like
-  const handleLikePost = async (post) => {
-    const postRef = doc(db, "users", user.uid, "posts", post.id);
-
-    // Ensure post.likes is defined; if not, default to an empty array
-    const updatedLikes = Array.isArray(post.likes) ? post.likes : [];
-
-    const isLiked = updatedLikes.includes(user.uid);
-
-    const newLikes = isLiked
-      ? updatedLikes.filter((uid) => uid !== user.uid) // Remove like
-      : [...updatedLikes, user.uid]; // Add like
-
-    await updateDoc(postRef, { likes: newLikes });
-  };
-
   const renderItem = ({ item }) => {
     const postDate = item.createdAt ? item.createdAt.toDate() : null;
     const formattedDate = postDate
       ? moment(postDate).fromNow()
       : "No date available";
-    const isLiked = item.likes.includes(user.uid);
     const userInfo = userDetails[item.userId] || {}; // Get user details for this post
 
     return (
@@ -114,7 +94,15 @@ const Myposts = () => {
 
         {/* Post Content */}
         <View style={styles.cardContent}>
-          {item.mediaUrl && (
+          {item.mediaUrl && item.mediaUrl.endsWith(".mp4") ? (
+            <Video
+              source={{ uri: item.mediaUrl }}
+              style={styles.cardVideo}
+              resizeMode="contain"
+              shouldPlay={false} // Change this to true if you want to autoplay
+              isLooping
+            />
+          ) : (
             <Image source={{ uri: item.mediaUrl }} style={styles.cardImage} />
           )}
           <View style={styles.infoContainer}>
@@ -123,19 +111,9 @@ const Myposts = () => {
           </View>
         </View>
 
-        {/* Post Actions */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            onPress={() => handleLikePost(item)}
-            style={styles.actionButton}
-          >
-            <FontAwesome
-              name={isLiked ? "heart" : "heart-o"}
-              size={24}
-              color={isLiked ? "red" : "black"}
-            />
-            <Text style={styles.actionText}>{item.likes.length}</Text>
-          </TouchableOpacity>
+        {/* Display number of likes */}
+        <View style={styles.likesContainer}>
+          <Text style={styles.likesText}>{item.likes.length} Likes</Text>
         </View>
       </View>
     );
@@ -211,6 +189,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginRight: 10,
   },
+  cardVideo: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    marginRight: 10,
+  },
   infoContainer: {
     flex: 1,
   },
@@ -223,19 +207,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 5,
   },
-  actionsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingBottom: 10,
+  likesContainer: {
+    padding: 10,
+    alignItems: "flex-start",
   },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  actionText: {
-    marginLeft: 5,
+  likesText: {
     fontSize: 16,
+    fontWeight: "bold",
   },
   postList: {
     width: "100%",

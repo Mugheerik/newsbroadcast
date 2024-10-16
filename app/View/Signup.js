@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput } from "react-native";
+import { View, Text, StyleSheet, TextInput, ActivityIndicator } from "react-native";
 import { Button } from "react-native-paper";
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"; // Importing icons
 import { useSignupViewModel } from "../ModelView/signupView";
@@ -17,11 +17,13 @@ const SignupForm = () => {
     handleSignUp,
   } = useSignupViewModel();
 
+  const [loading, setLoading] = useState(false); // State for loading
   const [googleButtonStyle, setGoogleButtonStyle] = useState({
     backgroundColor: "white",
     borderColor: "black",
     textColor: "black",
   });
+
   const Separator = ({ text }) => (
     <View style={styles.separatorContainer}>
       <View style={styles.separatorLine} />
@@ -29,6 +31,7 @@ const SignupForm = () => {
       <View style={styles.separatorLine} />
     </View>
   );
+
   const handleGoogleButtonPressIn = () => {
     setGoogleButtonStyle({
       backgroundColor: "black",
@@ -43,6 +46,18 @@ const SignupForm = () => {
       borderColor: "black",
       textColor: "black",
     });
+  };
+
+  const handleSignUpPress = async () => {
+    setLoading(true); // Set loading to true when starting signup
+
+    try {
+      await handleSignUp();
+    } catch (error) {
+      console.error("Signup failed", error);
+    }
+
+    setLoading(false); // Set loading to false after signup completes
   };
 
   return (
@@ -113,14 +128,18 @@ const SignupForm = () => {
           />
         </View>
 
-        <Button
-          mode="contained"
-          onPress={handleSignUp}
-          style={styles.button}
-          labelStyle={{ color: "white" }}
-        >
-          SIGNUP
-        </Button>
+        {loading ? (
+          <ActivityIndicator size="large" color="#000000" style={styles.loading} />
+        ) : (
+          <Button
+            mode="contained"
+            onPress={handleSignUpPress}
+            style={styles.button}
+            labelStyle={{ color: "white" }}
+          >
+            SIGNUP
+          </Button>
+        )}
       </View>
       <Separator text="OR" />
 
@@ -149,7 +168,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
   },
-
   header: {
     alignItems: "center",
     padding: 20,
@@ -198,6 +216,9 @@ const styles = StyleSheet.create({
   button: {
     marginVertical: 20,
     backgroundColor: "#000000",
+  },
+  loading: {
+    marginVertical: 20,
   },
 });
 

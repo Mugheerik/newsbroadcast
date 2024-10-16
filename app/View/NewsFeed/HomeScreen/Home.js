@@ -6,27 +6,21 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { Link } from "expo-router";
 import { collection, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { db } from "../../../../firebaseConfig"; // Adjust path as necessary
 import { getAuth } from "firebase/auth";
-import { FontAwesome } from "@expo/vector-icons"; // Icons for heart and favorite buttons
-import moment from "moment"; // To format timestamps
-
-const Header = () => {
-  return (
-    <View style={styles.header}>
-      <TouchableOpacity style={styles.drawerItem}>
-        <Text>Filters Area</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
+import { FontAwesome } from "@expo/vector-icons";
+import moment from "moment";
+import { Video } from "expo-av"; // Importing the Video component from expo-av
 
 const IndexScreen = () => {
   const [posts, setPosts] = useState([]);
+  const [videoLoading, setVideoLoading] = useState(false);
   const [users, setUsers] = useState({});
+  const [loading, setLoading] = useState(true); // Add loading state
   const user = getAuth().currentUser;
 
   useEffect(() => {
@@ -37,10 +31,18 @@ const IndexScreen = () => {
           id: doc.id,
           ...doc.data(),
         }));
-        setPosts(postsData);
+        
+        // Sort posts by createdAt
+        const sortedPosts = postsData.sort((a, b) => {
+          return b.createdAt.toDate() - a.createdAt.toDate(); // Assuming createdAt is a timestamp
+        });
+        
+        setPosts(sortedPosts);
+        setLoading(false); // Set loading to false when posts are fetched
       },
       (error) => {
         console.error("Error fetching posts: ", error);
+        setLoading(false); // Ensure loading is false on error
       }
     );
 
@@ -74,17 +76,34 @@ const IndexScreen = () => {
 
   const renderItem = ({ item }) => {
     const isLiked = item.likes.includes(user.uid);
-    const userProfile = users[item.userId]; 
+    const userProfile = users[item.userId];
     if (!item.id) {
       console.error("Post UID is missing", item);
       return null;
-    }// Get user details from users object
+    }
+
+    // Function to check if the URL is a video or image
+    const isVideo = (url) => {
+      if (!url) return false; // Return false if url is undefined or null
+      const videoExtensions = [".mp4", ".mov", ".avi", ".mkv"];
+      
+      // Check if the URL has any of the video extensions before any query parameters
+      const urlWithoutParams = url.split("?")[0]; // Remove query parameters
+      const result = videoExtensions.some(ext => urlWithoutParams.endsWith(ext));
+    
+    // Log the result
+      return result;
+    };
+    
+
+    // Log the media URL and check if it's a video
+    console.log("Media URL:", item.mediaUrl);
+    console.log("Is Video:", isVideo(item.mediaUrl));
 
     return (
       <Link href={`/posts/${item.id}`} asChild>
         <TouchableOpacity>
           <View style={styles.card}>
-            {/* Post Header */}
             <View style={styles.headerContainer}>
               <Image
                 source={
@@ -102,17 +121,39 @@ const IndexScreen = () => {
               </View>
             </View>
 
-            {/* Post Content */}
             <View style={styles.textContainer}>
               <Text style={styles.cardTitle}>{item.title}</Text>
               <Text style={styles.cardDescription}>{item.description}</Text>
             </View>
 
+            {/* Render image or video based on the media type */}
             {item.mediaUrl && (
-              <Image source={{ uri: item.mediaUrl }} style={styles.cardImage} />
+              isVideo(item.mediaUrl) ? (
+                <View>
+                  <Video
+                    source={{ uri: item.mediaUrl }}
+                    style={styles.cardMedia}
+                    useNativeControls
+                    resizeMode="contain"
+                    isLooping
+                    shouldPlay={true}
+                    onLoadStart={() => setVideoLoading(true)} // Set loading to true when starting to load
+                    onLoad={() => setVideoLoading(false)} // Set loading to false when the video is loaded
+                    onError={() => { 
+                      setVideoLoading(false); 
+                      console.error('Error loading video');
+                    }} 
+                  />
+                  {videoLoading && <ActivityIndicator size="large" color="#0000ff" />}
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: item.mediaUrl }}
+                  style={styles.cardMedia}
+                />
+              )
             )}
 
-            {/* Post Actions */}
             <View style={styles.actionsContainer}>
               <TouchableOpacity
                 onPress={() => handleLikePost(item)}
@@ -134,13 +175,17 @@ const IndexScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Header />
-      <FlatList
-        data={posts}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.postList}
-      />
+      {loading ? ( // Conditional rendering based on loading state
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <FlatList
+          data={posts}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.postList}
+          showsVerticalScrollIndicator={false} // Optional: Hide the vertical scroll indicator
+        />
+      )}
     </View>
   );
 };
@@ -150,21 +195,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 15,
-    backgroundColor: "#f8f8f8",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
   card: {
     padding: 15,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
     marginVertical: 5,
+    borderRadius: 5,
+    width: '100%', // Ensure card takes full width
   },
   headerContainer: {
     flexDirection: "row",
@@ -200,7 +238,7 @@ const styles = StyleSheet.create({
     color: "#777",
     marginVertical: 5,
   },
-  cardImage: {
+  cardMedia: {
     width: "100%",
     height: 200,
     borderRadius: 5,
@@ -220,7 +258,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   postList: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 0, // No horizontal padding for the list
   },
 });
 
