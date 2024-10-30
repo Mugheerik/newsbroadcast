@@ -31,12 +31,12 @@ const IndexScreen = () => {
           id: doc.id,
           ...doc.data(),
         }));
-        
+
         // Sort posts by createdAt
         const sortedPosts = postsData.sort((a, b) => {
           return b.createdAt.toDate() - a.createdAt.toDate();
         });
-        
+
         setPosts(sortedPosts);
         setLoading(false); // Set loading to false when posts are fetched
       },
@@ -87,11 +87,11 @@ const IndexScreen = () => {
       if (!url) return false;
       const videoExtensions = [".mp4", ".mov", ".avi", ".mkv"];
       const urlWithoutParams = url.split("?")[0];
-      return videoExtensions.some(ext => urlWithoutParams.endsWith(ext));
+      return videoExtensions.some((ext) => urlWithoutParams.endsWith(ext));
     };
-    
+
     return (
-      <Link href={`/posts/${item.id}`} asChild>
+      <Link href={`/View/NewsFeed/${item.id}`} asChild>
         <TouchableOpacity>
           <View style={styles.card}>
             <View style={styles.headerContainer}>
@@ -117,8 +117,8 @@ const IndexScreen = () => {
             </View>
 
             {/* Render image or video based on the media type */}
-            {item.mediaUrl && (
-              isVideo(item.mediaUrl) ? (
+            {item.mediaUrl &&
+              (isVideo(item.mediaUrl) ? (
                 <View>
                   <Video
                     source={{ uri: item.mediaUrl }}
@@ -128,20 +128,21 @@ const IndexScreen = () => {
                     shouldPlay={false}
                     onLoadStart={() => setVideoLoading(true)}
                     onLoad={() => setVideoLoading(false)}
-                    onError={() => { 
-                      setVideoLoading(false); 
-                      console.error('Error loading video');
-                    }} 
+                    onError={() => {
+                      setVideoLoading(false);
+                      console.error("Error loading video");
+                    }}
                   />
-                  {videoLoading && <ActivityIndicator size="large" color="#0000ff" />}
+                  {videoLoading && (
+                    <ActivityIndicator size="large" color="#0000ff" />
+                  )}
                 </View>
               ) : (
                 <Image
                   source={{ uri: item.mediaUrl }}
                   style={styles.cardMedia}
                 />
-              )
-            )}
+              ))}
 
             <View style={styles.actionsContainer}>
               <TouchableOpacity
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e0e0e0",
     marginVertical: 5,
     borderRadius: 5,
-    width: '100%',
+    width: "100%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

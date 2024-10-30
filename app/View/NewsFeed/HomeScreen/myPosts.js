@@ -70,7 +70,7 @@ const Myposts = () => {
     };
 
     return (
-      <Link href={`/posts/${item.id}`} asChild>
+      <Link href={`/View/NewsFeed/${item.id}`} asChild>
       <View style={styles.card}>
         <View
           style={[

@@ -25,7 +25,7 @@ export default function CustomDrawerContent() {
         <Text style={styles.userEmail}>{userData.email}</Text>
         <TouchableOpacity
           style={styles.drawerItem}
-          onPress={() => router.push("/View/AdminFeed/UserProfile")}
+          onPress={() => router.push("/View/NewsFeed/UserProfile")}
         >
           <Text>View Profile</Text>
         </TouchableOpacity>

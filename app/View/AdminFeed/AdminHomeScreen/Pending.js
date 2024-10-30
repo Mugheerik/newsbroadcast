@@ -59,59 +59,65 @@ const IndexScreen = () => {
   const renderItem = ({ item }) => {
     const userInfo = userDetails[item.userId] || {};
     return (
-      <Link href={`/posts/${item.id}`} asChild>
-      <View style={styles.card}>
-        <View style={styles.userInfo}>
-          <Image source={{ uri: userInfo.profileImage }} style={styles.profileImage} />
-          <View style={styles.userText}>
-            <Text style={styles.username}>{userInfo.name || "Unknown User"}</Text>
-            <Text style={styles.postTime}>{item.time}</Text>
+      <Link href={`/View/AdminFeed/${item.id}`} asChild>
+        <View style={styles.card}>
+          <View style={styles.userInfo}>
+            <Image
+              source={{ uri: userInfo.profileImage }}
+              style={styles.profileImage}
+            />
+            <View style={styles.userText}>
+              <Text style={styles.username}>
+                {userInfo.name || "Unknown User"}
+              </Text>
+              <Text style={styles.postTime}>{item.time}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text style={styles.cardDescription}>
+            {item.summary || item.description}
+          </Text>
+
+          {item.mediaUrl &&
+            (isVideo(item.mediaUrl) ? (
+              <View>
+                <Video
+                  source={{ uri: item.mediaUrl }}
+                  style={styles.cardMedia}
+                  useNativeControls
+                  resizeMode="contain"
+                  shouldPlay={false}
+                  onLoadStart={() => setVideoLoading(true)}
+                  onLoad={() => setVideoLoading(false)}
+                  onError={() => {
+                    setVideoLoading(false);
+                    console.error("Error loading video");
+                  }}
+                />
+                {videoLoading && (
+                  <ActivityIndicator size="large" color="#0000ff" />
+                )}
+              </View>
+            ) : (
+              <Image source={{ uri: item.mediaUrl }} style={styles.cardMedia} />
+            ))}
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.rejectButton}
+              onPress={() => reject(item.id, item)}
+            >
+              <Text style={styles.rejectButtonText}>Reject</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.approveButton}
+              onPress={() => approve(item.id, item)}
+            >
+              <Text style={styles.approveButtonText}>Approve</Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text style={styles.cardDescription}>
-          {item.summary || item.description}
-        </Text>
-
-        {item.mediaUrl && (
-          isVideo(item.mediaUrl) ? (
-            <View>
-              <Video
-                source={{ uri: item.mediaUrl }}
-                style={styles.cardMedia}
-                useNativeControls
-                resizeMode="contain"
-                shouldPlay={false}
-                onLoadStart={() => setVideoLoading(true)}
-                onLoad={() => setVideoLoading(false)}
-                onError={() => {
-                  setVideoLoading(false);
-                  console.error("Error loading video");
-                }}
-              />
-              {videoLoading && <ActivityIndicator size="large" color="#0000ff" />}
-            </View>
-          ) : (
-            <Image source={{ uri: item.mediaUrl }} style={styles.cardMedia} />
-          )
-        )}
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.rejectButton}
-            onPress={() => reject(item.id, item)}
-          >
-            <Text style={styles.rejectButtonText}>Reject</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.approveButton}
-            onPress={() => approve(item.id, item)}
-          >
-            <Text style={styles.approveButtonText}>Approve</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
       </Link>
     );
   };

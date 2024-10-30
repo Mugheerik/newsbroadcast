@@ -80,31 +80,35 @@ const Myposts = () => {
 
   const renderItem = ({ item }) => {
     const postDate = item.createdAt ? item.createdAt.toDate() : null;
-    const formattedDate = postDate ? postDate.toLocaleString() : "No date available";
+    const formattedDate = postDate
+      ? postDate.toLocaleString()
+      : "No date available";
 
     return (
-      <View style={styles.card}>
-        <View style={styles.cardContent}>
-          {/* Post Media */}
-          {item.mediaUrl && renderMedia(item.mediaUrl)}
+      <Link Link href={`/View/AdminFeed/${item.id}`} asChild>
+        <View style={styles.card}>
+          <View style={styles.cardContent}>
+            {/* Post Media */}
+            {item.mediaUrl && renderMedia(item.mediaUrl)}
 
-          {/* User Details and Post Info */}
-          <View style={styles.infoContainer}>
-            <View style={styles.userDetails}>
-              {item.userProfilePic && (
-                <Image
-                  source={{ uri: item.userProfilePic }}
-                  style={styles.profileImage}
-                />
-              )}
-              <Text style={styles.userName}>{item.userName}</Text>
+            {/* User Details and Post Info */}
+            <View style={styles.infoContainer}>
+              <View style={styles.userDetails}>
+                {item.userProfilePic && (
+                  <Image
+                    source={{ uri: item.userProfilePic }}
+                    style={styles.profileImage}
+                  />
+                )}
+                <Text style={styles.userName}>{item.userName}</Text>
+              </View>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardDescription}>{item.description}</Text>
+              <Text style={styles.timestamp}>{formattedDate}</Text>
             </View>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardDescription}>{item.description}</Text>
-            <Text style={styles.timestamp}>{formattedDate}</Text>
           </View>
         </View>
-      </View>
+      </Link>
     );
   };
 
