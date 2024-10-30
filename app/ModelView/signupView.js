@@ -1,7 +1,6 @@
 // viewmodels/signupViewModel.js
 import { useState } from "react";
 import { signUp } from "../Model/signupModel";
-import { signIn } from "../Model/signinModel";
 import { saveUserData } from "../Model/usersModel";
 import { router } from "expo-router";
 

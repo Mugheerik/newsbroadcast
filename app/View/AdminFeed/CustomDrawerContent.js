@@ -19,7 +19,7 @@ export default function CustomDrawerContent() {
       {/* Dynamic User Info Section */}
       <View style={styles.userInfoContainer}>
         <View style={styles.avatarContainer}>
-          <Image source={{ uri: userData.profilePicture }} style={styles.avatarText} />
+          <Image source={{ uri: userData.photoURL }} style={styles.avatarText} />
           
         </View>
         <Text style={styles.userName}>{userData.name}</Text>
@@ -35,7 +35,7 @@ export default function CustomDrawerContent() {
       {/* Drawer Items */}
       <TouchableOpacity
         style={styles.drawerItem}
-        onPress={() => router.push("/View/NewsFeed/HomeScreen/Home")}
+        onPress={() => router.push("/View/AdminFeed/AdminHomeScreen/Home")}
       >
         <Text>Home</Text>
       </TouchableOpacity>

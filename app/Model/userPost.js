@@ -9,8 +9,10 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import axios from "axios";
 
 const storage = getStorage(app);
+const FLASK_API_URL = "https://150e-34-125-127-76.ngrok-free.app";
 
 export async function createPost(title, description, file, mediaType) {
   try {
@@ -21,34 +23,36 @@ export async function createPost(title, description, file, mediaType) {
       throw new Error("User not authenticated");
     }
 
-    // Check if the storage object is initialized
     if (!storage) {
       throw new Error("Storage is not initialized");
     }
 
-    // Ensure the file object is valid
     if (!file || !file.uri || !file.name) {
       console.error("Invalid file object:", file);
       throw new Error("Invalid file object");
     }
 
-    // Create a reference to Firebase Storage
     const storageRef = ref(storage, `posts/${user.uid}/${file.name}`);
     const response = await fetch(file.uri);
     const blob = await response.blob();
 
-    // Upload the file to Firebase Storage
     const snapshot = await uploadBytes(storageRef, blob);
     const mediaUrl = await getDownloadURL(snapshot.ref);
 
-    // Fetch user data to determine if they are an admin
     const userDocRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userDocRef);
     const userData = userDoc.data();
+
+    // Check if userData exists and isAdmin is defined properly
     const isAdmin =
       userData && userData.status && userData.status.includes("Admin");
 
-    // Define the common post data
+    // Check if the collection path is valid
+    const collectionPath = isAdmin ? "posts" : `users/${user.uid}/posts`;
+    if (!collectionPath) {
+      throw new Error("Invalid collection path");
+    }
+
     const postData = {
       title,
       description,
@@ -57,26 +61,36 @@ export async function createPost(title, description, file, mediaType) {
       userId: user.uid,
       likes: [],
       createdAt: serverTimestamp(),
+      approved: isAdmin,
     };
 
-    if (isAdmin) {
-      // If the user is an admin, create the post in the main 'posts' collection
-      await setDoc(doc(collection(db, "posts")), {
-        ...postData,
-        approved: true,
+    const postRef = doc(collection(db, collectionPath));
+    await setDoc(postRef, postData);
+    console.log("Post created"); // Upload the post without the summary
+
+    if (mediaType === "video") {
+      // Step 1: Initiate request to the Flask app
+      const response = await axios.post(`${FLASK_API_URL}/summarize`, {
+        video_url: mediaUrl, // Pass the video URI or URL
       });
 
-      // Also create a copy in the user's personal 'posts' collection
-      await setDoc(doc(collection(db, "users", user.uid, "posts")), {
-        ...postData,
-        approved: true,
-      });
-    } else {
-      // If the user is not an admin, create the post only in the user's personal 'posts' collection
-      await setDoc(doc(collection(db, "users", user.uid, "posts")), {
-        ...postData,
-        approved: false, // Not approved by default
-      });
+      const { id } = response.data; // Get the job ID from the response
+
+      // Step 2: Check completion of processing
+      let completed = false;
+      while (!completed) {
+        const statusResponse = await axios.get(`${FLASK_API_URL}/status/${id}`);
+        if (statusResponse.data.status === "completed") {
+          completed = true;
+          const summary = statusResponse.data.summary; // Get the summary
+
+          // Step 3: Update the post with the summary
+          await setDoc(postRef, { summary }, { merge: true }); // Merge the summary into the existing post
+        } else {
+          console.log("Processing video, checking status...");
+          await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait before checking again
+        }
+      }
     }
 
     console.log("Post created");

@@ -34,7 +34,7 @@ const IndexScreen = () => {
         
         // Sort posts by createdAt
         const sortedPosts = postsData.sort((a, b) => {
-          return b.createdAt.toDate() - a.createdAt.toDate(); // Assuming createdAt is a timestamp
+          return b.createdAt.toDate() - a.createdAt.toDate();
         });
         
         setPosts(sortedPosts);
@@ -84,22 +84,12 @@ const IndexScreen = () => {
 
     // Function to check if the URL is a video or image
     const isVideo = (url) => {
-      if (!url) return false; // Return false if url is undefined or null
+      if (!url) return false;
       const videoExtensions = [".mp4", ".mov", ".avi", ".mkv"];
-      
-      // Check if the URL has any of the video extensions before any query parameters
-      const urlWithoutParams = url.split("?")[0]; // Remove query parameters
-      const result = videoExtensions.some(ext => urlWithoutParams.endsWith(ext));
-    
-    // Log the result
-      return result;
+      const urlWithoutParams = url.split("?")[0];
+      return videoExtensions.some(ext => urlWithoutParams.endsWith(ext));
     };
     
-
-    // Log the media URL and check if it's a video
-    console.log("Media URL:", item.mediaUrl);
-    console.log("Is Video:", isVideo(item.mediaUrl));
-
     return (
       <Link href={`/posts/${item.id}`} asChild>
         <TouchableOpacity>
@@ -135,10 +125,9 @@ const IndexScreen = () => {
                     style={styles.cardMedia}
                     useNativeControls
                     resizeMode="contain"
-                    isLooping
-                    shouldPlay={true}
-                    onLoadStart={() => setVideoLoading(true)} // Set loading to true when starting to load
-                    onLoad={() => setVideoLoading(false)} // Set loading to false when the video is loaded
+                    shouldPlay={false}
+                    onLoadStart={() => setVideoLoading(true)}
+                    onLoad={() => setVideoLoading(false)}
                     onError={() => { 
                       setVideoLoading(false); 
                       console.error('Error loading video');
@@ -175,7 +164,7 @@ const IndexScreen = () => {
 
   return (
     <View style={styles.container}>
-      {loading ? ( // Conditional rendering based on loading state
+      {loading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <FlatList
@@ -183,7 +172,7 @@ const IndexScreen = () => {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.postList}
-          showsVerticalScrollIndicator={false} // Optional: Hide the vertical scroll indicator
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -202,7 +191,12 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e0e0e0",
     marginVertical: 5,
     borderRadius: 5,
-    width: '100%', // Ensure card takes full width
+    width: '100%',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   headerContainer: {
     flexDirection: "row",
@@ -258,7 +252,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   postList: {
-    paddingHorizontal: 0, // No horizontal padding for the list
+    paddingHorizontal: 10,
   },
 });
 

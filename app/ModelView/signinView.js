@@ -14,7 +14,7 @@ export const useSignInViewModel = () => {
       const userData = await getUserData(userCredential.user.uid);
 
       if (userData.status === "Admin") {
-        router.replace("/View/AdminFeed/HomeScreen/Home");
+        router.replace("/View/AdminFeed/AdminHomeScreen/Home");
       } else {
         router.replace("/View/NewsFeed/HomeScreen/Home");
       }

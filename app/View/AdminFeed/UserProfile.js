@@ -1,9 +1,12 @@
 // UpdateProfileForm.js
 import React, { useEffect, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import { View, Text, StyleSheet, Image, Alert } from "react-native";
 import { TextInput, Button } from "react-native-paper";
-import * as ImagePicker from "expo-image-picker";
 import { useProfileViewModel } from "../../ModelView/profileViewModel";
+import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
+import { app } from "../../../firebaseConfig";
+import { getAuth } from "firebase/auth";
 
 const UpdateProfileForm = () => {
   const {
@@ -11,14 +14,17 @@ const UpdateProfileForm = () => {
     profilePicture,
     setProfilePicture,
     handleUpdateProfile,
-    uploadImageAsync,
     fetchUserData,
     loading,
   } = useProfileViewModel();
 
+  const auth = getAuth(app);
+  const storage = getStorage(app);
+  const user = auth.currentUser;
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [password, setPassword] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
 
   useEffect(() => {
     fetchUserData(); // Fetch user data when the component mounts
@@ -32,28 +38,71 @@ const UpdateProfileForm = () => {
     }
   }, [userData]);
 
-  // Function to pick an image from the device
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission denied",
-        "We need permission to access your media."
-      );
+    try {
+      // Request permission to access the media library
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission to access camera roll is required!");
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
+
+      console.log("Image Picker Result:", result); // Log the result to check
+
+      if (!result.canceled) {
+        const imageUri = result.uri;
+        console.log("Selected Image URI:", imageUri); // Log the image URI
+        uploadImage(imageUri); // Call the upload function
+      } else {
+        console.log("Image selection was cancelled."); // Log if cancelled
+      }
+    } catch (error) {
+      console.error("Error in pickImage function:", error); // Log any errors that occur
+    }
+  };
+
+  const uploadImage = async (uri) => {
+    console.log("Upload Image Function Called with URI:", uri); // Log the URI received
+
+    const user = getAuth().currentUser; // Get the current user
+    console.log("Current User:", user); // Log the current user
+
+    if (!user) {
+      Alert.alert("No user is logged in.");
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
 
-    if (!result.canceled) {
-      const { uri } = result;
-      const imageUri = await uploadImageAsync(uri); // Upload the image and get the URL
-      setProfilePicture(imageUri); // Set the uploaded image URL
+      console.log("Blob created:", blob); // Log the blob to check its details
+
+      const storageRef = ref(storage, `profilePictures/${user.uid}`); // Use a unique filename
+      await uploadBytes(storageRef, blob); // Await the upload to ensure it completes
+      console.log("File uploaded successfully to:", storageRef.fullPath); // Log the storage path
+
+      const url = await getDownloadURL(storageRef);
+      console.log("Uploaded Image URL:", url); // Log the uploaded image URL
+
+      if (url) {
+        setMediaUrl(url); // Store the URL in your state or context
+        updateUserProfile(url); // Call your function to update user data
+      } else {
+        Alert.alert("Failed to get download URL.");
+        console.error("Download URL is undefined.");
+      }
+    } catch (error) {
+      Alert.alert("Error uploading image:", error.message);
+      console.error("Upload error:", error); // Log the error for debugging
     }
   };
 
@@ -105,7 +154,9 @@ const UpdateProfileForm = () => {
 
         <Button
           mode="contained"
-          onPress={() => handleUpdateProfile({ name, location, password })}
+          onPress={() =>
+            handleUpdateProfile({ name, location, password, mediaUrl })
+          }
           style={styles.button}
           loading={loading}
         >
@@ -115,7 +166,6 @@ const UpdateProfileForm = () => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "white" },
   header: { alignItems: "center", padding: 20, marginTop: 50 },

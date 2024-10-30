@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, TextInput, ActivityIndicator, Alert } from "react-native";
 import { Button } from "react-native-paper";
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"; // Importing icons
 import { useSignInViewModel } from "../ModelView/signinView";
@@ -87,7 +87,7 @@ const LoginForm = () => {
         </View>
 
         {error ? (
-          <Text style={styles.errorText}>{error}</Text>
+          Alert.alert(error)
         ) : null}
 
         {loading ? (

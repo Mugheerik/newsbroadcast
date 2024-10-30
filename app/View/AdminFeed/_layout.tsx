@@ -12,7 +12,7 @@ export default function Layout() {
     <Drawer drawerContent={() => <CustomDrawerContent />}>
       {/* Define routes here using Drawer.Screen */}
       <Drawer.Screen
-        name="HomeScreen"
+        name="AdminHomeScreen"
         options={{
           headerTitle: () => (
             <View style={{ width: 150, height: 20, alignItems: "center" }}>
@@ -38,7 +38,6 @@ export default function Layout() {
       />
 
       <Drawer.Screen name="UserProfile" options={{ title: "Edit Profile" }} />
-      
     </Drawer>
   );
 }

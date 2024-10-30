@@ -5,6 +5,7 @@ import {
   FlatList,
   StyleSheet,
   Image,
+  TouchableOpacity,
 } from "react-native";
 import { collection, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../../firebaseConfig"; // Adjust path as necessary
@@ -52,6 +53,31 @@ const Myposts = () => {
     }
   }, []);
 
+  const renderMedia = (mediaUrl) => {
+    const isVideo = mediaUrl && mediaUrl.endsWith(".mp4");
+
+    if (isVideo) {
+      return (
+        <Video
+          source={{ uri: mediaUrl }}
+          style={styles.media}
+          resizeMode="contain"
+          shouldPlay={false} // Set to true if you want the video to autoplay
+          isLooping
+          useNativeControls
+        />
+      );
+    } else {
+      return (
+        <Image
+          source={{ uri: mediaUrl }}
+          style={styles.media}
+          resizeMode="contain"
+        />
+      );
+    }
+  };
+
   const renderItem = ({ item }) => {
     const postDate = item.createdAt ? item.createdAt.toDate() : null;
     const formattedDate = postDate ? postDate.toLocaleString() : "No date available";
@@ -60,17 +86,7 @@ const Myposts = () => {
       <View style={styles.card}>
         <View style={styles.cardContent}>
           {/* Post Media */}
-          {item.mediaUrl && item.mediaUrl.endsWith(".mp4") ? (
-            <Video
-              source={{ uri: item.mediaUrl }}
-              style={styles.cardVideo}
-              resizeMode="contain"
-              shouldPlay={false} // Set to true if you want the video to autoplay
-              isLooping
-            />
-          ) : (
-            <Image source={{ uri: item.mediaUrl }} style={styles.cardImage} />
-          )}
+          {item.mediaUrl && renderMedia(item.mediaUrl)}
 
           {/* User Details and Post Info */}
           <View style={styles.infoContainer}>
@@ -118,22 +134,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 5,
+    overflow: "hidden",
   },
   cardContent: {
-    flexDirection: "row",
+    flexDirection: "column",
     padding: 10,
   },
-  cardImage: {
-    width: 80,
-    height: 80,
+  media: {
+    width: "100%",
+    height: 200, // Adjust this height as needed for your layout
     borderRadius: 10,
-    marginRight: 10,
-  },
-  cardVideo: {
-    width: 80,
-    height: 80,
-    borderRadius: 10,
-    marginRight: 10,
+    marginBottom: 10,
   },
   infoContainer: {
     flex: 1,
@@ -167,7 +178,6 @@ const styles = StyleSheet.create({
     color: "#888",
   },
   postList: {
-    width: "100%",
     paddingHorizontal: 10,
   },
 });

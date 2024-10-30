@@ -19,7 +19,7 @@ export default function CustomDrawerContent() {
       {/* Dynamic User Info Section */}
       <View style={styles.userInfoContainer}>
         <View style={styles.avatarContainer}>
-        <Image source={{ uri: userData.profilePicture }} style={styles.profileImage} />
+        <Image source={{ uri: userData.profileImage }} style={styles.profileImage} />
         </View>
         <Text style={styles.userName}>{userData.name}</Text>
         <Text style={styles.userEmail}>{userData.email}</Text>
