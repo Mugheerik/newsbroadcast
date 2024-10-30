@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 // Import the custom drawer content
 // app/_layout.js
 import { Drawer } from "expo-router/drawer";
-import CustomDrawerContent from "../AdminFeed/CustomDrawerContent";
+import CustomDrawerContent from "../NewsFeed/CustomDrawerContent";
 
 export default function Layout() {
   return (

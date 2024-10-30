@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Link } from "expo-router";
 import { collection, onSnapshot, updateDoc, doc } from "firebase/firestore";
-import { db } from "../../../../firebaseConfig"; // Adjust path as necessary
+import { db,app } from "../../../../firebaseConfig"; // Adjust path as necessary
 import { getAuth } from "firebase/auth";
 import { FontAwesome } from "@expo/vector-icons";
 import moment from "moment";
@@ -20,8 +20,9 @@ const IndexScreen = () => {
   const [posts, setPosts] = useState([]);
   const [videoLoading, setVideoLoading] = useState(false);
   const [users, setUsers] = useState({});
-  const [loading, setLoading] = useState(true); // Add loading state
-  const user = getAuth().currentUser;
+  const [loading, setLoading] = useState(true);
+  const auth = getAuth(app); // Add loading state
+  const user = auth.currentUser;
 
   useEffect(() => {
     const unsubscribePosts = onSnapshot(
@@ -91,7 +92,7 @@ const IndexScreen = () => {
     };
 
     return (
-      <Link href={`/View/NewsFeed/${item.id}`} asChild>
+      <Link href={`/posts/${item.id}`} asChild>
         <TouchableOpacity>
           <View style={styles.card}>
             <View style={styles.headerContainer}>

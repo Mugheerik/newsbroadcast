@@ -59,7 +59,7 @@ const IndexScreen = () => {
   const renderItem = ({ item }) => {
     const userInfo = userDetails[item.userId] || {};
     return (
-      <Link href={`/View/AdminFeed/${item.id}`} asChild>
+      <Link href={`/posts/${item.id}`} asChild>
         <View style={styles.card}>
           <View style={styles.userInfo}>
             <Image

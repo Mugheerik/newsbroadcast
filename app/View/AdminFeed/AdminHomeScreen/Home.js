@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { collection, onSnapshot, doc, getDoc } from "firebase/firestore";
+import { Link } from "expo-router";
 import { db } from "../../../../firebaseConfig"; // Adjust path as necessary
 import { getAuth } from "firebase/auth";
 import { Video } from "expo-av"; // Import Video component for video playback
@@ -85,7 +86,8 @@ const Myposts = () => {
       : "No date available";
 
     return (
-      <Link Link href={`/View/AdminFeed/${item.id}`} asChild>
+      <Link Link href={`/posts/${item.id}`} asChild>
+        <TouchableOpacity>
         <View style={styles.card}>
           <View style={styles.cardContent}>
             {/* Post Media */}
@@ -108,6 +110,7 @@ const Myposts = () => {
             </View>
           </View>
         </View>
+        </TouchableOpacity>
       </Link>
     );
   };

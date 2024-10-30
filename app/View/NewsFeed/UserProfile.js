@@ -1,3 +1,4 @@
+// UpdateProfileForm.js
 import React, { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { View, Text, StyleSheet, Image, Alert } from "react-native";
@@ -12,7 +13,6 @@ const UpdateProfileForm = () => {
     userData,
     profilePicture,
     setProfilePicture,
-    uploadImage,
     handleUpdateProfile,
     fetchUserData,
     loading,
@@ -39,47 +39,70 @@ const UpdateProfileForm = () => {
   }, [userData]);
 
   const pickImage = async () => {
-    console.log("Pick Image Function Called");
     try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  
-      if (!permissionResult.granted) {
+      // Request permission to access the media library
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.granted === false) {
         Alert.alert("Permission to access camera roll is required!");
         return;
       }
-  
+
+      // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
         quality: 1,
       });
-  
+
       console.log("Image Picker Result:", result); // Log the result to check
-  
-      if (result.canceled) {
-        console.log("Image selection was cancelled."); // Log if cancelled
-        return;
-      }
-  
-      // Check if assets exist and log them
-      if (result.assets && result.assets.length > 0) {
-        const imageUri = result.assets[0].uri; // Accessing URI
+
+      if (!result.canceled) {
+        const imageUri = result.uri;
         console.log("Selected Image URI:", imageUri); // Log the image URI
-  
-        if (imageUri) {
-         const url= await uploadImage(imageUri);
-         setMediaUrl(url); // Call the upload function
-        } else {
-          console.error("The image URI is undefined.");
-          Alert.alert("The selected image does not have a valid URI.");
-        }
+        uploadImage(imageUri); // Call the upload function
       } else {
-        console.error("No assets found in the result.");
-        Alert.alert("No assets found.");
+        console.log("Image selection was cancelled."); // Log if cancelled
       }
     } catch (error) {
       console.error("Error in pickImage function:", error); // Log any errors that occur
+    }
+  };
+
+  const uploadImage = async (uri) => {
+    console.log("Upload Image Function Called with URI:", uri); // Log the URI received
+
+    const user = getAuth().currentUser; // Get the current user
+    console.log("Current User:", user); // Log the current user
+
+    if (!user) {
+      Alert.alert("No user is logged in.");
+      return;
+    }
+
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      console.log("Blob created:", blob); // Log the blob to check its details
+
+      const storageRef = ref(storage, `profilePictures/${user.uid}`); // Use a unique filename
+      await uploadBytes(storageRef, blob); // Await the upload to ensure it completes
+      console.log("File uploaded successfully to:", storageRef.fullPath); // Log the storage path
+
+      const url = await getDownloadURL(storageRef);
+      console.log("Uploaded Image URL:", url); // Log the uploaded image URL
+
+      if (url) {
+        setMediaUrl(url); // Store the URL in your state or context
+        updateUserProfile(url); // Call your function to update user data
+      } else {
+        Alert.alert("Failed to get download URL.");
+        console.error("Download URL is undefined.");
+      }
+    } catch (error) {
+      Alert.alert("Error uploading image:", error.message);
+      console.error("Upload error:", error); // Log the error for debugging
     }
   };
 
@@ -128,52 +151,35 @@ const UpdateProfileForm = () => {
           secureTextEntry
           style={styles.input}
         />
+
         <Button
           mode="contained"
-          onPress={() => handleUpdateProfile(name,location,password,mediaUrl)}
-          style={styles.updateButton}
+          onPress={() =>
+            handleUpdateProfile({ name, location, password, mediaUrl })
+          }
+          style={styles.button}
           loading={loading}
         >
-          Update Profile
+          UPDATE PROFILE
         </Button>
       </View>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#fff",
-  },
-  header: {
-    marginBottom: 16,
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  formContainer: {
-    flex: 1,
-  },
-  imageContainer: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  imageButton: {
-    marginTop: 8,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  updateButton: {
-    marginTop: 16,
+  container: { flex: 1, backgroundColor: "white" },
+  header: { alignItems: "center", padding: 20, marginTop: 50 },
+  headerText: { fontSize: 30, fontWeight: "bold", color: "black" },
+  formContainer: { paddingHorizontal: 20 },
+  imageContainer: { alignItems: "center", marginVertical: 20 },
+  profileImage: { width: 100, height: 100, borderRadius: 50, marginBottom: 10 },
+  imageButton: { backgroundColor: "#242424" },
+  input: { marginVertical: 10 },
+  button: {
+    marginVertical: 10,
+    borderRadius: 20,
+    padding: 5,
+    backgroundColor: "#242424",
   },
 });
 

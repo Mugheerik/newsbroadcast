@@ -14,6 +14,7 @@ import { db } from "../../../../firebaseConfig";
 import { getAuth } from "firebase/auth";
 import moment from "moment";
 import { Video } from "expo-av";
+import { TouchableOpacity } from "react-native";
 
 const Myposts = () => {
   const [posts, setPosts] = useState([]);
@@ -70,7 +71,7 @@ const Myposts = () => {
     };
 
     return (
-      <Link href={`/View/NewsFeed/${item.id}`} asChild>
+      
       <View style={styles.card}>
         <View
           style={[
@@ -107,7 +108,7 @@ const Myposts = () => {
                   style={styles.cardMedia}
                   useNativeControls
                   resizeMode="contain"
-                  shouldPlay={true}
+                  shouldPlay={false}
                   onLoadStart={() => setVideoLoading(true)}
                   onLoad={() => setVideoLoading(false)}
                   onError={() => {
@@ -133,7 +134,7 @@ const Myposts = () => {
           <Text style={styles.likesText}>{item.likes.length} Likes</Text>
         </View>
       </View>
-      </Link>
+     
     );
   };
 

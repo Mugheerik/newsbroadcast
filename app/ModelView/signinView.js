@@ -14,9 +14,9 @@ export const useSignInViewModel = () => {
       const userData = await getUserData(userCredential.user.uid);
 
       if (userData.status === "Admin") {
-        router.replace("/View/AdminFeed/AdminHomeScreen/Home");
+        router.push("/View/AdminFeed/AdminHomeScreen/Home");
       } else {
-        router.replace("/View/NewsFeed/HomeScreen/Home");
+        router.push("/View/NewsFeed/HomeScreen/UserHome");
       }
       // Get user data from Firestore using the user's UID
       console.log("User data:", userData);

@@ -54,6 +54,7 @@ const PostDetailScreen = () => {
   const isMediaVideo = isVideo(post.mediaUrl); // Determine if the media is a video
 
   return (
+    
     <ScrollView style={styles.container}>
       {/* Render video or image based on the media type */}
       {post.mediaUrl && (
@@ -84,8 +85,9 @@ const PostDetailScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
+    marginTop:50,
     flex: 1,
-    padding: 16,
+    padding: 10,
     backgroundColor: "#f7f7f7",
   },
   postMedia: {
