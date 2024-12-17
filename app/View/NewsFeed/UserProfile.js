@@ -1,12 +1,18 @@
-// UpdateProfileForm.js
 import React, { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
-import { View, Text, StyleSheet, Image, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Alert,
+  FlatList,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { TextInput, Button } from "react-native-paper";
 import { useProfileViewModel } from "../../ModelView/profileViewModel";
-import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
-import { app } from "../../../firebaseConfig";
-import { getAuth } from "firebase/auth";
+import locationData from "../../../assets/locations.json";
 
 const UpdateProfileForm = () => {
   const {
@@ -18,168 +24,183 @@ const UpdateProfileForm = () => {
     loading,
   } = useProfileViewModel();
 
-  const auth = getAuth(app);
-  const storage = getStorage(app);
-  const user = auth.currentUser;
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
-  const [password, setPassword] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredLocations, setFilteredLocations] = useState([]);
 
   useEffect(() => {
-    fetchUserData(); // Fetch user data when the component mounts
+    fetchUserData();
   }, []);
 
   useEffect(() => {
     if (userData) {
-      setName(userData.name);
+      setName(userData.name || "");
       setLocation(userData.location || "");
       setProfilePicture(userData.profilePicture);
     }
   }, [userData]);
 
-  const pickImage = async () => {
+  const handleImagePick = async () => {
     try {
-      // Request permission to access the media library
       const permissionResult =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-      if (permissionResult.granted === false) {
+      if (!permissionResult.granted) {
         Alert.alert("Permission to access camera roll is required!");
         return;
       }
 
-      // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 1,
       });
 
-      console.log("Image Picker Result:", result); // Log the result to check
-
-      if (!result.canceled) {
-        const imageUri = result.uri;
-        console.log("Selected Image URI:", imageUri); // Log the image URI
-        uploadImage(imageUri); // Call the upload function
-      } else {
-        console.log("Image selection was cancelled."); // Log if cancelled
+      if (!result.canceled && result.assets.length > 0) {
+        const selectedImage = result.assets[0].uri;
+        setProfilePicture(selectedImage);
       }
     } catch (error) {
-      console.error("Error in pickImage function:", error); // Log any errors that occur
+      console.error("Error selecting image:", error);
     }
   };
 
-  const uploadImage = async (uri) => {
-    console.log("Upload Image Function Called with URI:", uri); // Log the URI received
-
-    const user = getAuth().currentUser; // Get the current user
-    console.log("Current User:", user); // Log the current user
-
-    if (!user) {
-      Alert.alert("No user is logged in.");
-      return;
+  const handleLocationInput = (text) => {
+    setLocation(text);
+    if (text.trim() !== "") {
+      const results = locationData.filter((item) =>
+        item.Name.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredLocations(results);
+      setShowDropdown(results.length > 0);
+    } else {
+      setShowDropdown(false);
     }
+  };
 
-    try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      console.log("Blob created:", blob); // Log the blob to check its details
-
-      const storageRef = ref(storage, `profilePictures/${user.uid}`); // Use a unique filename
-      await uploadBytes(storageRef, blob); // Await the upload to ensure it completes
-      console.log("File uploaded successfully to:", storageRef.fullPath); // Log the storage path
-
-      const url = await getDownloadURL(storageRef);
-      console.log("Uploaded Image URL:", url); // Log the uploaded image URL
-
-      if (url) {
-        setMediaUrl(url); // Store the URL in your state or context
-        updateUserProfile(url); // Call your function to update user data
-      } else {
-        Alert.alert("Failed to get download URL.");
-        console.error("Download URL is undefined.");
-      }
-    } catch (error) {
-      Alert.alert("Error uploading image:", error.message);
-      console.error("Upload error:", error); // Log the error for debugging
-    }
+  const handleSubmit = () => {
+    handleUpdateProfile({ name, location });
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>UPDATE PROFILE</Text>
+   <View  style={styles.container} > 
+      {/* Image Section */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={
+            profilePicture
+              ? { uri: profilePicture }
+              : require("../../../assets/images/icon.png")
+          }
+          style={styles.profileImage}
+        />
+        <Button
+          mode="contained"
+          onPress={handleImagePick}
+          loading={loading}
+          style={styles.button}
+        >
+          Change Profile Picture
+        </Button>
       </View>
 
+      {/* Form Section */}
       <View style={styles.formContainer}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={
-              profilePicture
-                ? { uri: profilePicture }
-                : require("../../../assets/images/icon.png")
-            }
-            style={styles.profileImage}
-          />
-          <Button
-            mode="contained"
-            onPress={pickImage}
-            style={styles.imageButton}
-            loading={loading}
-          >
-            Change Profile Picture
-          </Button>
-        </View>
-
         <TextInput
           label="Full Name"
           value={name}
           onChangeText={setName}
           style={styles.input}
         />
+
         <TextInput
-          label="Location"
+          placeholder="Enter Location"
+          style={styles.input}
           value={location}
-          onChangeText={setLocation}
-          style={styles.input}
+          onChangeText={handleLocationInput}
         />
-        <TextInput
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={styles.input}
-        />
+
+        {/* Dropdown for Locations */}
+        {showDropdown && (
+          <FlatList
+            data={filteredLocations}
+            keyExtractor={(item, index) => index.toString()}
+            style={styles.dropdown}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setLocation(item.Name);
+                  setShowDropdown(false);
+                }}
+              >
+                <Text style={styles.dropdownText}>{item.Name}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
 
         <Button
           mode="contained"
-          onPress={() =>
-            handleUpdateProfile({ name, location, password, mediaUrl })
-          }
-          style={styles.button}
+          onPress={handleSubmit}
+          style={styles.submitButton}
           loading={loading}
         >
           UPDATE PROFILE
         </Button>
       </View>
-    </View>
+      </View>
   );
 };
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
-  header: { alignItems: "center", padding: 20, marginTop: 50 },
-  headerText: { fontSize: 30, fontWeight: "bold", color: "black" },
-  formContainer: { paddingHorizontal: 20 },
-  imageContainer: { alignItems: "center", marginVertical: 20 },
-  profileImage: { width: 100, height: 100, borderRadius: 50, marginBottom: 10 },
-  imageButton: { backgroundColor: "#242424" },
-  input: { marginVertical: 10 },
+  container: {
+    flexGrow: 1,
+    backgroundColor: "white",
+    padding: 20,
+  },
+  imageContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 10,
+  },
   button: {
-    marginVertical: 10,
     borderRadius: 20,
-    padding: 5,
-    backgroundColor: "#242424",
+    backgroundColor: "black",
+  },
+  formContainer: {
+    flex: 1,
+  },
+  input: {
+    marginVertical: 10,
+    backgroundColor: "#fff",
+  },
+  dropdown: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    maxHeight: 150,
+    marginVertical: 5,
+  },
+  dropdownItem: {
+    padding: 10,
+    borderBottomColor: "#ddd",
+    borderBottomWidth: 1,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: "black",
+  },
+  submitButton: {
+    marginTop: 20,
+    borderRadius: 20,
+    backgroundColor: "black",
   },
 });
 

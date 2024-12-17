@@ -6,175 +6,236 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
+  ScrollView,
   ActivityIndicator,
+  Share,
+  Alert,
+  Dimensions
 } from "react-native";
 import { Link } from "expo-router";
-import { collection, onSnapshot, updateDoc, doc } from "firebase/firestore";
-import { db,app } from "../../../../firebaseConfig"; // Adjust path as necessary
 import { getAuth } from "firebase/auth";
-import { FontAwesome } from "@expo/vector-icons";
+import { collection, query, orderBy, onSnapshot, getDocs, doc, setDoc, getDoc, deleteDoc } from "firebase/firestore";
+import { db } from "../../../../firebaseConfig";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import moment from "moment";
-import { Video } from "expo-av"; // Importing the Video component from expo-av
+import { Video } from "expo-av"; // Import Video component
 
 const IndexScreen = () => {
+  const [categories, setCategories] = useState([]);
   const [posts, setPosts] = useState([]);
-  const [videoLoading, setVideoLoading] = useState(false);
-  const [users, setUsers] = useState({});
   const [loading, setLoading] = useState(true);
-  const auth = getAuth(app); // Add loading state
-  const user = auth.currentUser;
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [favorites, setFavorites] = useState({});
 
   useEffect(() => {
-    const unsubscribePosts = onSnapshot(
-      collection(db, "posts"),
-      (querySnapshot) => {
-        const postsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        // Sort posts by createdAt
-        const sortedPosts = postsData.sort((a, b) => {
-          return b.createdAt.toDate() - a.createdAt.toDate();
-        });
-
-        setPosts(sortedPosts);
-        setLoading(false); // Set loading to false when posts are fetched
-      },
-      (error) => {
-        console.error("Error fetching posts: ", error);
-        setLoading(false); // Ensure loading is false on error
+    const fetchCategories = async () => {
+      try {
+        const categoriesRef = collection(db, "posts");
+        const querySnapshot = await getDocs(categoriesRef);
+        const fetchedCategories = querySnapshot.docs.map((doc) => doc.id.toUpperCase());
+        setCategories(fetchedCategories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
       }
-    );
-
-    const unsubscribeUsers = onSnapshot(
-      collection(db, "users"),
-      (querySnapshot) => {
-        const usersData = {};
-        querySnapshot.docs.forEach((doc) => {
-          usersData[doc.id] = doc.data();
-        });
-        setUsers(usersData);
-      },
-      (error) => {
-        console.error("Error fetching users: ", error);
-      }
-    );
-
-    return () => {
-      unsubscribePosts();
-      unsubscribeUsers();
     };
+    fetchCategories();
   }, []);
 
-  const handleLikePost = async (post) => {
-    const postRef = doc(db, "posts", post.id);
-    const updatedLikes = post.likes.includes(user.uid)
-      ? post.likes.filter((uid) => uid !== user.uid)
-      : [...post.likes, user.uid];
-    await updateDoc(postRef, { likes: updatedLikes });
-  };
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true);
+      if (selectedCategory === "All") {
+        const allPosts = [];
+        const unsubscribeFunctions = categories.map((category) => {
+          const postsRef = collection(db, "posts", category.toLowerCase(), "posts");
+          const q = query(postsRef, orderBy("createdAt", "desc"));
 
-  const renderItem = ({ item }) => {
-    const isLiked = item.likes.includes(user.uid);
-    const userProfile = users[item.userId];
-    if (!item.id) {
-      console.error("Post UID is missing", item);
-      return null;
-    }
+          return onSnapshot(
+            q,
+            (querySnapshot) => {
+              querySnapshot.forEach((doc) => {
+                allPosts.push({
+                  id: doc.id,
+                  category,
+                  ...doc.data(),
+                });
+              });
+              allPosts.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+              setPosts([...allPosts]);
+              setLoading(false);
+            },
+            (error) => {
+              console.error("Error fetching posts:", error);
+            }
+          );
+        });
+        return () => unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+      } else {
+        const postsRef = collection(db, "posts", selectedCategory.toLowerCase(), "posts");
+        const q = query(postsRef, orderBy("createdAt", "desc"));
 
-    // Function to check if the URL is a video or image
-    const isVideo = (url) => {
-      if (!url) return false;
-      const videoExtensions = [".mp4", ".mov", ".avi", ".mkv"];
-      const urlWithoutParams = url.split("?")[0];
-      return videoExtensions.some((ext) => urlWithoutParams.endsWith(ext));
+        const unsubscribe = onSnapshot(
+          q,
+          (querySnapshot) => {
+            const categoryPosts = querySnapshot.docs.map((doc) => ({
+              id: doc.id,
+              category: selectedCategory,
+              ...doc.data(),
+            }));
+            setPosts(categoryPosts);
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Error fetching posts:", error);
+          }
+        );
+        return () => unsubscribe();
+      }
     };
 
+    if (categories.length > 0) {
+      fetchPosts();
+    }
+  }, [selectedCategory, categories]);
+
+  const renderPost = ({ item }) => {
+    const user = getAuth().currentUser;
+  
+    const handleFavorite = async () => {
+      if (!user) {
+        Alert.alert("Not logged in", "Please log in to favorite posts.");
+        return;
+      }
+    
+      try {
+        const userFavoritesRef = collection(db, "users", user.uid, "favorites");
+        const postRef = doc(userFavoritesRef, item.id);
+    
+        // Optimistic UI update: immediately update the favorites state
+        setFavorites((prev) => ({ ...prev, [item.id]: !favorites[item.id] }));
+    
+        if (favorites[item.id]) {
+          // If it's already favorited, remove it
+          await deleteDoc(postRef);
+          Alert.alert("Success", "Post removed from favorites!");
+        } else {
+          // If it's not favorited, add it
+          await setDoc(postRef, {
+            ...item,
+            favoritedAt: new Date(),
+          });
+          Alert.alert("Success", "Post added to favorites!");
+        }
+      } catch (error) {
+        console.error("Error updating favorite state: ", error);
+        Alert.alert("Error", "Failed to update favorite state.");
+        // Revert optimistic UI update on error
+        setFavorites((prev) => ({ ...prev, [item.id]: favorites[item.id] }));
+      }
+    };
+  
+    const handleShare = async () => {
+      try {
+        await Share.share({
+          message: `Check out this post: ${item.title}\n\n${
+            item.mediaUrl || "No media available"
+          }`,
+        });
+      } catch (error) {
+        console.error("Error sharing post: ", error);
+        Alert.alert("Error", "Failed to share post.");
+      }
+    };
+  
     return (
-      <Link href={`/posts/${item.id}`} asChild>
+      <Link href={`/posts/${item.category}/posts/${item.id}`} asChild>
         <TouchableOpacity>
           <View style={styles.card}>
-            <View style={styles.headerContainer}>
-              <Image
-                source={
-                  userProfile?.profilePicture
-                    ? { uri: userProfile.profilePicture }
-                    : require("../../../../assets/images/icon.png")
-                }
-                style={styles.profileImage}
-              />
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.nameText}>{userProfile?.name}</Text>
-                <Text style={styles.timeText}>
-                  {moment(item.createdAt?.toDate()).fromNow()}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.textContainer}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardDescription}>{item.description}</Text>
-            </View>
-
-            {/* Render image or video based on the media type */}
-            {item.mediaUrl &&
-              (isVideo(item.mediaUrl) ? (
-                <View>
-                  <Video
-                    source={{ uri: item.mediaUrl }}
-                    style={styles.cardMedia}
-                    useNativeControls
-                    resizeMode="contain"
-                    shouldPlay={false}
-                    onLoadStart={() => setVideoLoading(true)}
-                    onLoad={() => setVideoLoading(false)}
-                    onError={() => {
-                      setVideoLoading(false);
-                      console.error("Error loading video");
-                    }}
-                  />
-                  {videoLoading && (
-                    <ActivityIndicator size="large" color="#0000ff" />
-                  )}
-                </View>
+            <View style={styles.imageContainer}>
+              {item.mediaType === "video" ? (
+                <Video
+                  source={{ uri: item.mediaUrl }}
+                  rate={1.0}
+                  volume={1.0}
+                  useNativeControls
+                  isMuted={false}
+                  resizeMode="cover"
+                  shouldPlay={false}
+                  isLooping
+                  style={styles.media}
+                />
               ) : (
                 <Image
-                  source={{ uri: item.mediaUrl }}
-                  style={styles.cardMedia}
+                  source={{
+                    uri: item.mediaUrl || "https://via.placeholder.com/150",
+                  }}
+                  style={styles.media}
                 />
-              ))}
-
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity
-                onPress={() => handleLikePost(item)}
-                style={styles.actionButton}
-              >
-                <FontAwesome
-                  name={isLiked ? "heart" : "heart-o"}
-                  size={24}
-                  color={isLiked ? "red" : "black"}
-                />
-                <Text style={styles.actionText}>{item.likes.length}</Text>
-              </TouchableOpacity>
+              )}
+            </View>
+            <View style={styles.content}>
+              <Text style={styles.category}>{item.category.toUpperCase()}</Text>
+              <Text style={styles.title} numberOfLines={2}>
+                {item.title}
+              </Text>
+              <Text style={styles.author}>
+                By {item.userName} • {moment(item.createdAt?.toDate()).fromNow()}
+              </Text>
+              <View style={styles.actions}>
+                <TouchableOpacity onPress={handleFavorite}>
+                  <Ionicons
+                    name={favorites[item.id] ? "bookmark" : "bookmark-outline"}
+                    size={24}
+                    color={favorites[item.id] ? "red" : "black"}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleShare}>
+                  <Ionicons name="share-social-outline" size={24} color="black" />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </TouchableOpacity>
       </Link>
     );
   };
-
+  
   return (
     <View style={styles.container}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryTabs}>
+        <TouchableOpacity
+          style={[styles.tab, selectedCategory === "All" && styles.selectedTab]}
+          onPress={() => setSelectedCategory("All")}
+        >
+          <Text style={[styles.tabText, selectedCategory === "All" && styles.selectedTabText]}>
+            All
+          </Text>
+        </TouchableOpacity>
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={[styles.tab, selectedCategory === category && styles.selectedTab]}
+            onPress={() => setSelectedCategory(category)}
+          >
+            <Text
+              style={[styles.tabText, selectedCategory === category && styles.selectedTabText]}
+            >
+              {category}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <Text style={styles.subHeader}>Trending Topic</Text>
+
       {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#007BFF" />
       ) : (
         <FlatList
           data={posts}
-          renderItem={renderItem}
+          renderItem={renderPost}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.postList}
-          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.list}
         />
       )}
     </View>
@@ -184,78 +245,82 @@ const IndexScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
-  },
-  card: {
-    padding: 15,
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    marginVertical: 5,
-    borderRadius: 5,
-    width: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    paddingHorizontal: 15,
   },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  categoryTabs: {
+    marginBottom: 10,
+    paddingVertical: 5,
+    height: 50, // Static height for the tabs container
   },
-  profileImage: {
-    width: 40,
-    height: 40,
+  tab: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 20,
+    backgroundColor: "#f5f5f5",
     marginRight: 10,
   },
-  headerTextContainer: {
-    justifyContent: "center",
+  selectedTab: {
+    backgroundColor: "#007BFF",
   },
-  nameText: {
-    fontSize: 16,
+  tabText: {
+    fontSize: 14,
+    color: "#333",
+  },
+  selectedTabText: {
+    color: "#fff",
     fontWeight: "bold",
   },
-  timeText: {
+  subHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginVertical: 10,
+  },
+  list: {
+    flexGrow: 1, // Ensures consistent space for content
+    height: Dimensions.get("window").height * 0.75, // Set a fixed height for the list
+    paddingBottom: 15,
+  },
+  card: {
+    flexDirection: "row",
+    marginVertical: 10,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 10,
+    overflow: "hidden",
+    elevation: 3,
+  },
+  imageContainer: {
+    width: 100,
+    height: 100,
+    backgroundColor: "#e0e0e0",
+  },
+  media: {
+    width: "100%",
+    height: "100%",
+  },
+  content: {
+    flex: 1,
+    padding: 10,
+  },
+  category: {
     fontSize: 12,
     color: "#777",
   },
-  textContainer: {
-    marginTop: 10,
-  },
-  cardTitle: {
+  title: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#000",
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: "#777",
     marginVertical: 5,
   },
-  cardMedia: {
-    width: "100%",
-    height: 200,
-    borderRadius: 5,
-    marginTop: 10,
+  author: {
+    fontSize: 12,
+    color: "#aaa",
   },
-  actionsContainer: {
+  actions: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 10,
   },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  actionText: {
-    marginLeft: 5,
-    fontSize: 16,
-  },
-  postList: {
-    paddingHorizontal: 10,
-  },
 });
+
 
 export default IndexScreen;

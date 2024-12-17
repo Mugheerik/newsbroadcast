@@ -29,7 +29,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="createpost"
         options={{
-          
+          headerShown: false,
           tabBarIcon: ({ }) => <AntDesign size={28} name="pluscircle" color={"black"} />,
         }}
        

@@ -4,23 +4,32 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  
   Image,
   ActivityIndicator,
+  TouchableOpacity,
+  
 } from "react-native";
-import { Link } from "expo-router";
-import { collection, onSnapshot, doc, getDoc } from "firebase/firestore";
-import { db } from "../../../../firebaseConfig";
 import { getAuth } from "firebase/auth";
+import {
+  collection,
+  onSnapshot,
+  doc,
+  getDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import { db } from "../../../../firebaseConfig";
+
 import moment from "moment";
 import { Video } from "expo-av";
-import { TouchableOpacity } from "react-native";
+
 
 const Myposts = () => {
   const [posts, setPosts] = useState([]);
   const [userDetails, setUserDetails] = useState({});
   const user = getAuth().currentUser;
   const [videoLoading, setVideoLoading] = useState(false);
+
+
 
   useEffect(() => {
     if (user) {
@@ -57,6 +66,21 @@ const Myposts = () => {
     }
   }, []);
 
+  const deletePost = async (postId) => {
+    const postRef = doc(db, "users", user.uid, "posts", postId);
+
+    // Check if the post is approved before allowing deletion
+    const postDoc = await getDoc(postRef);
+    if (postDoc.exists() && postDoc.data().approved) {
+      alert("This post is approved and cannot be deleted.");
+      return;
+    }
+
+    // Delete the post if it is not approved
+    await deleteDoc(postRef);
+    alert("Post deleted successfully.");
+  };
+
   const renderItem = ({ item }) => {
     const postDate = item.createdAt ? item.createdAt.toDate() : null;
     const formattedDate = postDate
@@ -71,7 +95,6 @@ const Myposts = () => {
     };
 
     return (
-      
       <View style={styles.card}>
         <View
           style={[
@@ -116,13 +139,12 @@ const Myposts = () => {
                     console.error("Error loading video");
                   }}
                 />
-                {videoLoading && <ActivityIndicator size="large" color="#0000ff" />}
+                {videoLoading && (
+                  <ActivityIndicator size="large" color="#0000ff" />
+                )}
               </View>
             ) : (
-              <Image
-                source={{ uri: item.mediaUrl }}
-                style={styles.cardMedia}
-              />
+              <Image source={{ uri: item.mediaUrl }} style={styles.cardMedia} />
             ))}
           <View style={styles.infoContainer}>
             <Text style={styles.cardTitle}>{item.title}</Text>
@@ -130,11 +152,18 @@ const Myposts = () => {
           </View>
         </View>
 
-        <View style={styles.likesContainer}>
-          <Text style={styles.likesText}>{item.likes.length} Likes</Text>
-        </View>
+       
+
+        {/* Delete Button */}
+        {!item.approved && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => deletePost(item.id)}
+          >
+            <Text style={styles.deleteText}>Delete</Text>
+          </TouchableOpacity>
+        )}
       </View>
-     
     );
   };
 
@@ -174,63 +203,67 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 10,
   },
   statusText: {
-    color: "#ffffff",
+    color: "#fff",
     fontWeight: "bold",
   },
   headerContainer: {
     flexDirection: "row",
-    alignItems: "center",
     padding: 10,
+    alignItems: "center",
   },
   profileImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   headerTextContainer: {
-    justifyContent: "center",
+    marginLeft: 10,
   },
   userName: {
-    fontSize: 18,
     fontWeight: "bold",
   },
   timestamp: {
-    fontSize: 14,
-    color: "#888",
+    fontSize: 12,
+    color: "#555",
   },
   cardContent: {
     padding: 10,
   },
+  cardTitle: {
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: "#555",
+  },
   cardMedia: {
     width: "100%",
     height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
+    marginBottom: 10,
   },
   infoContainer: {
-    marginTop: 10,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginVertical: 5,
-  },
-  cardDescription: {
-    fontSize: 16,
-    marginBottom: 5,
+    padding: 5,
   },
   likesContainer: {
     padding: 10,
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   likesText: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 14,
+    color: "#555",
   },
-  postList: {
-    width: "100%",
-    paddingHorizontal: 10,
+  deleteButton: {
+    padding: 10,
+    backgroundColor: "#d9534f",
+    alignItems: "center",
+    borderRadius: 5,
+    marginBottom: 10,
+   
+  },
+  deleteText: {
+    color: "#fff",
+    fontSize: 16,
   },
 });
 

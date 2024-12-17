@@ -18,14 +18,14 @@ export default function CustomDrawerContent() {
     <View style={styles.drawerContainer}>
       {/* Dynamic User Info Section */}
       <View style={styles.userInfoContainer}>
-        <View style={styles.avatarContainer}>
+        <View>
           <Image
-            source={{ uri: userData.profileImage }}
+            source={{ uri: userData.profilePicture }}
             style={styles.profileImage}
           />
         </View>
         <Text style={styles.userName}>{userData.name}</Text>
-        <Text style={styles.userEmail}>{userData.email}</Text>
+        <Text style={styles.userEmail}>{userData.location}</Text>
         <TouchableOpacity
           style={styles.drawerItem}
           onPress={() => router.push("/View/NewsFeed/UserProfile")}
@@ -41,6 +41,21 @@ export default function CustomDrawerContent() {
       >
         <Text>Home</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.drawerItem}
+        onPress={() => router.push("/View/NewsFeed/favorites")}
+      >
+        <Text>Favorites</Text>
+
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.drawerItem}
+        onPress={() => router.push("/View/NewsFeed/changePassword")}
+      >
+        <Text>Change Password</Text>
+      </TouchableOpacity>
+
 
       <TouchableOpacity style={styles.drawerItem} onPress={handleLogout}>
         <Text>Log Out</Text>
@@ -59,21 +74,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 30,
   },
-  avatarContainer: {
-    backgroundColor: "#34D399", // Example color
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
+
+  profileImage: { width: 120, height: 120, borderRadius: 60, marginBottom: 10 },
   userName: {
     fontSize: 18,
     fontWeight: "bold",

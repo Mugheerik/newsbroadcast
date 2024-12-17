@@ -17,6 +17,8 @@ const usePostViewModel = () => {
   const [description, setDescription] = useState("");
   const [file, setFile] = useState(null);
   const [mediaType, setMediaType] = useState("");
+  const [category, setCategory] = useState("");
+  const [location, setLocation] = useState("");
   const user = getAuth().currentUser;
 
   useEffect(() => {
@@ -70,31 +72,19 @@ const usePostViewModel = () => {
   }, [user]);
 
   // Function to handle like
-  const handleLikePost = async (post) => {
-    if (!post || !user) return; // Check for post and user existence
-    const postRef = doc(db, "posts", post.id);
-    const updatedLikes = Array.isArray(post.likes) ? post.likes : [];
-    const isLiked = updatedLikes.includes(user.uid);
-    const newLikes = isLiked
-      ? updatedLikes.filter((uid) => uid !== user.uid) // Remove like
-      : [...updatedLikes, user.uid]; // Add like
-
-    try {
-      await updateDoc(postRef, { likes: newLikes });
-    } catch (error) {
-      console.error("Error updating likes: ", error);
-    }
-  };
+ 
 
   // Function to handle creating a new post
   const handleCreatePost = async () => {
-    if (title && description && file && mediaType) {
+    if (title && description && file && mediaType&&category&&location) {
       try {
-        await createPost(title, description, file, mediaType);
+        await createPost(title, description, file, mediaType,category,location);
         setTitle("");
         setDescription("");
         setFile(null);
         setMediaType("");
+        setCategory("");
+        setLocation("");
       } catch (error) {
         console.error("Error creating post: ", error);
       }
@@ -102,6 +92,7 @@ const usePostViewModel = () => {
       console.log("All fields are required");
     }
   };
+  
 
 
 
@@ -115,9 +106,14 @@ const usePostViewModel = () => {
     file,
     setFile,
     mediaType,
+    category,
+    setCategory,
     setMediaType,
+    location,
+    setLocation,
     handleCreatePost,
-    handleLikePost,
+    
+   
    
   };
 };

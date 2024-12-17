@@ -39,6 +39,25 @@ export default function CustomDrawerContent() {
       >
         <Text>Home</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.drawerItem}
+        onPress={() => router.push("/View/AdminFeed/ApprovedPosts")}
+      >
+        <Text>Approved Posts</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.drawerItem}
+        onPress={() => router.push("/View/AdminFeed/rejectedposts")}
+      >
+        <Text>Rejected Posts</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.drawerItem}
+        onPress={() => router.push("/View/AdminFeed/changePassword")}
+      >
+        <Text>Change Password</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.drawerItem} onPress={handleLogout}>
         <Text>Log Out</Text>

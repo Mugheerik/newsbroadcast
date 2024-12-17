@@ -1,3 +1,6 @@
+
+
+
 import { getAuth } from "firebase/auth";
 import { app, db } from "../../firebaseConfig";
 import { getStorage } from "firebase/storage";
@@ -14,7 +17,7 @@ import axios from "axios";
 const storage = getStorage(app);
 const FLASK_API_URL = "https://150e-34-125-127-76.ngrok-free.app";
 
-export async function createPost(title, description, file, mediaType) {
+export async function createPost(title, description, file, mediaType, category, location) {
   try {
     const auth = getAuth();
     const user = auth.currentUser;
@@ -32,6 +35,10 @@ export async function createPost(title, description, file, mediaType) {
       throw new Error("Invalid file object");
     }
 
+    if (!category || typeof category !== "string") {
+      throw new Error("Invalid category field");
+    }
+
     const storageRef = ref(storage, `posts/${user.uid}/${file.name}`);
     const response = await fetch(file.uri);
     const blob = await response.blob();
@@ -43,58 +50,60 @@ export async function createPost(title, description, file, mediaType) {
     const userDoc = await getDoc(userDocRef);
     const userData = userDoc.data();
 
-    // Check if userData exists and isAdmin is defined properly
     const isAdmin =
       userData && userData.status && userData.status.includes("Admin");
 
-    // Check if the collection path is valid
-    const collectionPath = isAdmin ? "posts" : `users/${user.uid}/posts`;
-    if (!collectionPath) {
-      throw new Error("Invalid collection path");
-    }
-
+    // Create the path: "posts/<category>"
+      // Check if the collection path is valid
+      const categoryPath = isAdmin ? `posts/${category}posts` : `users/${user.uid}/posts`;
+      if (!categoryPath ) {
+        throw new Error("Invalid collection path");
+      }
+    
     const postData = {
       title,
       description,
       mediaUrl,
       mediaType,
       userId: user.uid,
+      userName:userData.name,
       likes: [],
       createdAt: serverTimestamp(),
       approved: isAdmin,
+      category, // Include the category in post data
+      location,
     };
 
-    const postRef = doc(collection(db, collectionPath));
+    // Store the post in the appropriate category inside the "posts" collection
+    const postRef = doc(collection(db, categoryPath));
     await setDoc(postRef, postData);
-    console.log("Post created"); // Upload the post without the summary
+    console.log("Post created");
 
     if (mediaType === "video") {
-      // Step 1: Initiate request to the Flask app
       const response = await axios.post(`${FLASK_API_URL}/summarize`, {
-        video_url: mediaUrl, // Pass the video URI or URL
+        video_url: mediaUrl,
       });
 
-      const { id } = response.data; // Get the job ID from the response
+      const { id } = response.data;
 
-      // Step 2: Check completion of processing
       let completed = false;
       while (!completed) {
         const statusResponse = await axios.get(`${FLASK_API_URL}/status/${id}`);
         if (statusResponse.data.status === "completed") {
           completed = true;
-          const summary = statusResponse.data.summary; // Get the summary
+          const summary = statusResponse.data.summary;
 
-          // Step 3: Update the post with the summary
-          await setDoc(postRef, { summary }, { merge: true }); // Merge the summary into the existing post
+          await setDoc(postRef, { summary }, { merge: true });
         } else {
           console.log("Processing video, checking status...");
-          await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait before checking again
+          await new Promise((resolve) => setTimeout(resolve, 5000));
         }
       }
     }
 
-    console.log("Post created");
+    console.log("Post created with summary");
   } catch (error) {
     console.error("Error creating post: ", error);
   }
 }
+

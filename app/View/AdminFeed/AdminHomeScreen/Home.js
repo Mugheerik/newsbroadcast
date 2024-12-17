@@ -85,31 +85,56 @@ const Myposts = () => {
       ? postDate.toLocaleString()
       : "No date available";
 
-    return (
-      <Link Link href={`/posts/${item.id}`} asChild>
-        <TouchableOpacity>
-        <View style={styles.card}>
-          <View style={styles.cardContent}>
-            {/* Post Media */}
-            {item.mediaUrl && renderMedia(item.mediaUrl)}
+    // Handle long descriptions with "Read More"
+    const [expanded, setExpanded] = useState(false);
+    const toggleDescription = () => setExpanded(!expanded);
+    const truncatedDescription =
+      item.description && item.description.length > 100
+        ? item.description.substring(0, 100) + "..."
+        : item.description;
 
-            {/* User Details and Post Info */}
-            <View style={styles.infoContainer}>
-              <View style={styles.userDetails}>
-                {item.userProfilePic && (
-                  <Image
-                    source={{ uri: item.userProfilePic }}
-                    style={styles.profileImage}
-                  />
+    return (
+      <Link href={`/posts/${item.id}`} asChild>
+        <TouchableOpacity>
+          <View style={styles.card}>
+            <View style={styles.cardContent}>
+              {/* Post Media */}
+              {item.mediaUrl && renderMedia(item.mediaUrl)}
+
+              {/* User Details and Post Info */}
+              <View style={styles.infoContainer}>
+                <View style={styles.userDetails}>
+                  {item.userProfilePic && (
+                    <Image
+                      source={{ uri: item.userProfilePic }}
+                      style={styles.profileImage}
+                    />
+                  )}
+                  <Text style={styles.userName}>{item.userName}</Text>
+                </View>
+
+                {/* Promotional Title */}
+                <Text style={styles.cardTitle}>
+                  {item.isPromotional ? "Promotional: " : ""}
+                  {item.title}
+                </Text>
+
+                {/* Description */}
+                <Text style={styles.cardDescription}>
+                  {expanded ? item.description : truncatedDescription}
+                </Text>
+                {item.description && item.description.length > 100 && (
+                  <TouchableOpacity onPress={toggleDescription}>
+                    <Text style={styles.readMoreText}>
+                      {expanded ? "Show Less" : "Read More"}
+                    </Text>
+                  </TouchableOpacity>
                 )}
-                <Text style={styles.userName}>{item.userName}</Text>
+
+                <Text style={styles.timestamp}>{formattedDate}</Text>
               </View>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardDescription}>{item.description}</Text>
-              <Text style={styles.timestamp}>{formattedDate}</Text>
             </View>
           </View>
-        </View>
         </TouchableOpacity>
       </Link>
     );
@@ -179,6 +204,11 @@ const styles = StyleSheet.create({
   cardDescription: {
     fontSize: 14,
     marginBottom: 5,
+  },
+  readMoreText: {
+    fontSize: 14,
+    color: "#0066cc",
+    marginTop: 5,
   },
   timestamp: {
     fontSize: 12,

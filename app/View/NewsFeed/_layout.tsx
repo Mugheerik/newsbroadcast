@@ -38,6 +38,8 @@ export default function Layout() {
       />
 
       <Drawer.Screen name="UserProfile" options={{ title: "Edit Profile" }} />
+      <Drawer.Screen name="changePassword" options={{ title: "Change Password" }} />
+      <Drawer.Screen name="favorites" options={{ title: "Favorites" }} />
      
     </Drawer>
   );

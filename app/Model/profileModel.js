@@ -1,38 +1,34 @@
-import { app, db,  } from "../../firebaseConfig"; // Import Firebase auth, Firestore, and storage
-import { updateProfile } from "firebase/auth";
-import { doc, setDoc,updateDoc } from "firebase/firestore";
-import { Alert } from "react-native";
-// Function to upload profile picture to Firebase Storage
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getAuth } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../../firebaseConfig";
 
-
-
-// Function to update the user profile in Firebase Authentication
-export const updateUserProfile = async (url) => {
-  const user = getAuth().currentUser; // Get the current user
-  if (user && url) { // Check if the user and url are valid
-    const userRef = doc(db, "users", user.uid); // Adjust collection name as necessary
-    try {
-      await updateDoc(userRef, {
-        profilePicture: url,
-      });
-      Alert.alert("Profile picture updated successfully!");
-    } catch (error) {
-      Alert.alert("Error updating profile:", error.message);
-    }
-  } else {
-    Alert.alert("No user is signed in or URL is undefined.");
-  }
-};
-
-// Function to update Firestore with additional user data
-export const updateUserDataInFirestore = async (userId, data) => {
+// Upload profile picture to Firebase Storage
+export const uploadProfilePictureToStorage = async (userId, uri) => {
   try {
-    const userDocRef = doc(db, "users", userId);
-    await setDoc(userDocRef, data, { merge: true }); // Merging so it doesn't overwrite the whole doc
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    const storage = getStorage();
+    const storageRef = ref(storage, `profilePictures/${userId}`);
+
+    await uploadBytes(storageRef, blob);
+    const downloadURL = await getDownloadURL(storageRef);
+
+    return downloadURL;
   } catch (error) {
-    console.error("Error updating Firestore: ", error);
+    console.error("Error uploading profile picture:", error);
     throw error;
   }
 };
+
+// Update user data in Firestore
+export const updateUserDataInFirestore = async (userId, data) => {
+  try {
+    const userDocRef = doc(db, "users", userId);
+    await setDoc(userDocRef, data, { merge: true });
+  } catch (error) {
+    console.error("Error updating Firestore data:", error);
+    throw error;
+  }
+};
+

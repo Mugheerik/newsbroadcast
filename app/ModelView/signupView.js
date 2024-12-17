@@ -9,13 +9,19 @@ export const useSignupViewModel = () => {
   const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("User");
+  const [status, setStatus] = useState("");
   const profilePicture = null;
   const handleSignUp = async () => {
     try {
       const { user } = await signUp(email, password);
-      await saveUserData(user.uid, { name, email, location,status,profilePicture });
-      router.replace("/View/NewsFeed/HomeScreen/Home");
+      await saveUserData(user.uid, {
+        name,
+        email,
+        location,
+        status,
+        profilePicture,
+      });
+      router.replace("/View/NewsFeed/HomeScreen/UserHome");
       console.log("User account created & additional data stored!");
     } catch (error) {
       console.error("Error signing up:", error);
@@ -30,6 +36,7 @@ export const useSignupViewModel = () => {
     location,
     setLocation,
     password,
+    setStatus,
     setPassword,
     handleSignUp,
   };

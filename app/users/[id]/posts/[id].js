@@ -1,19 +1,19 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebaseConfig"; // Adjust path as necessary
+import { collection, doc, getDoc } from "firebase/firestore";
+import { db } from "../../../../firebaseConfig"; // Adjust path as necessary
 import moment from "moment"; // To format timestamps
 import { Video } from "expo-av"; // Import the Video component
 
 const PostDetailScreen = () => {
-  const { id } = useLocalSearchParams(); // Get the id from the route params
+  const { uid,id } = useLocalSearchParams(); // Get the id from the route params
   const [post, setPost] = useState(null);
   const [user, setUser] = useState(null); // State to store user details
 
   useEffect(() => {
     const fetchPost = async () => {
-      const postRef = doc(db, "posts", id);
+      const postRef =doc(db, "users",uid, 'posts',id);
       const postSnapshot = await getDoc(postRef);
       if (postSnapshot.exists()) {
         setPost(postSnapshot.data());
@@ -28,7 +28,7 @@ const PostDetailScreen = () => {
       }
     };
 
-    if (id) {
+    if (uid&&id) {
       fetchPost();
     }
   }, [id]);

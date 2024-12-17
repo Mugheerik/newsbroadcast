@@ -37,7 +37,9 @@ export default function Layout() {
         }}
       />
 
-      <Drawer.Screen name="UserProfile" options={{ title: "Edit Profile" }} />
+      <Drawer.Screen name="UserProfile" options={{ title: "Edit Profile"}} />
+      <Drawer.Screen name="ApprovedPosts" options={{ title: "Approved Posts" }} />
+      <Drawer.Screen name="rejectedposts" options={{ title: "Rejected Posts" }} />
     </Drawer>
   );
 }
