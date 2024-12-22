@@ -41,7 +41,6 @@ const PostPage = () => {
   const [customCategory, setCustomCategory] = useState(""); // Custom category value
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
- 
 
   const [categories, setCategories] = useState([
     { label: "Sports", value: "sports" },
@@ -124,7 +123,6 @@ const PostPage = () => {
           placeholder="Enter Location"
           value={location}
           onChangeText={handleLocationInput}
-        
         />
         {showDropdown && (
           <FlatList

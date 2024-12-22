@@ -6,28 +6,21 @@ import {
   StyleSheet,
   Image,
   Alert,
-  FlatList,
-  TouchableOpacity,
-  ScrollView,
 } from "react-native";
 import { TextInput, Button } from "react-native-paper";
 import { useProfileViewModel } from "../../ModelView/profileViewModel";
-import locationData from "../../../assets/locations.json";
 
 const UpdateProfileForm = () => {
   const {
     userData,
     profilePicture,
     setProfilePicture,
-    handleUpdateProfile,
+    handleUpdateName,
     fetchUserData,
     loading,
   } = useProfileViewModel();
 
   const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [filteredLocations, setFilteredLocations] = useState([]);
 
   useEffect(() => {
     fetchUserData();
@@ -36,7 +29,6 @@ const UpdateProfileForm = () => {
   useEffect(() => {
     if (userData) {
       setName(userData.name || "");
-      setLocation(userData.location || "");
       setProfilePicture(userData.profilePicture);
     }
   }, [userData]);
@@ -65,25 +57,12 @@ const UpdateProfileForm = () => {
     }
   };
 
-  const handleLocationInput = (text) => {
-    setLocation(text);
-    if (text.trim() !== "") {
-      const results = locationData.filter((item) =>
-        item.Name.toLowerCase().includes(text.toLowerCase())
-      );
-      setFilteredLocations(results);
-      setShowDropdown(results.length > 0);
-    } else {
-      setShowDropdown(false);
-    }
-  };
-
   const handleSubmit = () => {
-    handleUpdateProfile({ name, location });
+    handleUpdateName( name);
   };
 
   return (
-   <View  style={styles.container} > 
+    <View style={styles.container}>
       {/* Image Section */}
       <View style={styles.imageContainer}>
         <Image
@@ -113,33 +92,6 @@ const UpdateProfileForm = () => {
           style={styles.input}
         />
 
-        <TextInput
-          placeholder="Enter Location"
-          style={styles.input}
-          value={location}
-          onChangeText={handleLocationInput}
-        />
-
-        {/* Dropdown for Locations */}
-        {showDropdown && (
-          <FlatList
-            data={filteredLocations}
-            keyExtractor={(item, index) => index.toString()}
-            style={styles.dropdown}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.dropdownItem}
-                onPress={() => {
-                  setLocation(item.Name);
-                  setShowDropdown(false);
-                }}
-              >
-                <Text style={styles.dropdownText}>{item.Name}</Text>
-              </TouchableOpacity>
-            )}
-          />
-        )}
-
         <Button
           mode="contained"
           onPress={handleSubmit}
@@ -149,7 +101,7 @@ const UpdateProfileForm = () => {
           UPDATE PROFILE
         </Button>
       </View>
-      </View>
+    </View>
   );
 };
 
@@ -179,23 +131,6 @@ const styles = StyleSheet.create({
   input: {
     marginVertical: 10,
     backgroundColor: "#fff",
-  },
-  dropdown: {
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    maxHeight: 150,
-    marginVertical: 5,
-  },
-  dropdownItem: {
-    padding: 10,
-    borderBottomColor: "#ddd",
-    borderBottomWidth: 1,
-  },
-  dropdownText: {
-    fontSize: 16,
-    color: "black",
   },
   submitButton: {
     marginTop: 20,

@@ -1,6 +1,3 @@
-
-
-
 import { getAuth } from "firebase/auth";
 import { app, db } from "../../firebaseConfig";
 import { getStorage } from "firebase/storage";
@@ -13,11 +10,20 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import axios from "axios";
+import * as Notifications from "expo-notifications"; // Import Expo notifications
 
 const storage = getStorage(app);
-const FLASK_API_URL = "https://150e-34-125-127-76.ngrok-free.app";
+const FLASK_API_URL = "https://1c28-35-240-204-14.ngrok-free.app";
 
-export async function createPost(title, description, file, mediaType, category, location) {
+export async function createPost(
+  title,
+  description,
+  file,
+  mediaType,
+  category,
+  location
+) {
+  let isAdmin = false;
   try {
     const auth = getAuth();
     const user = auth.currentUser;
@@ -50,35 +56,57 @@ export async function createPost(title, description, file, mediaType, category, 
     const userDoc = await getDoc(userDocRef);
     const userData = userDoc.data();
 
-    const isAdmin =
-      userData && userData.status && userData.status.includes("Admin");
+    if (userData && userData.status && userData.status.includes("Admin")) {
+      isAdmin = true;
+    }
 
-    // Create the path: "posts/<category>"
-      // Check if the collection path is valid
-      const categoryPath = isAdmin ? `posts/${category}posts` : `users/${user.uid}/posts`;
-      if (!categoryPath ) {
-        throw new Error("Invalid collection path");
-      }
-    
+    // Check if push token exists for the admin, if not request permissions and store the token
+    if (isAdmin && (!userData.expoPushToken || userData.expoPushToken === "")) {
+      await requestNotificationPermissions();  // Request permission
+      const pushToken = await Notifications.getExpoPushTokenAsync();
+      await setDoc(userDocRef, { expoPushToken: pushToken.data }, { merge: true });
+      console.log("Push token stored for admin");
+    }
+
+    // Determine the path based on user role
+    const categoryPath = isAdmin
+      ? `posts/${category}/posts`
+      : `users/${user.uid}/posts`;
+    if (!categoryPath) {
+      throw new Error("Invalid collection path");
+    }
+
+    // Prepare post data
     const postData = {
       title,
       description,
       mediaUrl,
       mediaType,
       userId: user.uid,
-      userName:userData.name,
+      userName: userData.name,
       likes: [],
       createdAt: serverTimestamp(),
       approved: isAdmin,
-      category, // Include the category in post data
+      category,
       location,
     };
 
-    // Store the post in the appropriate category inside the "posts" collection
+    // Add "promotional" tag if the user is an admin
+    if (isAdmin) {
+      postData.promotional = true;
+    }
+
+    // Store the post
     const postRef = doc(collection(db, categoryPath));
     await setDoc(postRef, postData);
     console.log("Post created");
+    if (isAdmin) {
+      const postRef = doc(collection(db, `users/${user.uid}/posts`));
+      await setDoc(postRef, postData);
+      console.log("admin Post created");
+    }
 
+    // Handle video summarization if media type is video
     if (mediaType === "video") {
       const response = await axios.post(`${FLASK_API_URL}/summarize`, {
         video_url: mediaUrl,
@@ -102,8 +130,55 @@ export async function createPost(title, description, file, mediaType, category, 
     }
 
     console.log("Post created with summary");
+
+    // Send notification to the admin
+    if (!isAdmin) {
+      await notifyAdmin(userData);
+    }
   } catch (error) {
     console.error("Error creating post: ", error);
   }
 }
 
+// Request notification permissions
+const requestNotificationPermissions = async () => {
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== "granted") {
+    alert("Permission not granted for notifications");
+  }
+};
+
+// Function to notify the admin
+const notifyAdmin = async (userData) => {
+  try {
+    // Fetch the admin user document to get their push token
+    const adminUserDocRef = doc(db, "users", "adminUserUID");  // Replace with actual admin UID
+    const adminUserDoc = await getDoc(adminUserDocRef);
+    const adminData = adminUserDoc.data();
+
+    if (adminData && adminData.expoPushToken) {
+      const pushToken = adminData.expoPushToken;
+
+      // Construct the message payload
+      const message = {
+        to: pushToken,
+        sound: "default",
+        title: "New Post Created",
+        body: `${userData.name} has created a new post in the ${userData.category} category.`,
+        data: { userId: userData.uid },
+      };
+
+      // Send push notification
+      await Notifications.scheduleNotificationAsync({
+        content: message,
+        trigger: null, // Trigger immediately
+      });
+
+      console.log("Notification sent to admin");
+    } else {
+      console.log("Admin does not have a push token");
+    }
+  } catch (error) {
+    console.error("Error notifying admin: ", error);
+  }
+};

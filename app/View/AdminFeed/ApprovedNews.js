@@ -7,23 +7,26 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
+  
 } from "react-native";
 import { Link } from "expo-router";
-import { Video } from "expo-av";
 import { getAuth } from "firebase/auth";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
 
 import moment from "moment";
+import { Video } from "expo-av";
 
-const RejectedPostsScreen = () => {
-  const user = getAuth().currentUser;
+
+const ApprovedPostsScreen = () => {
+    const user = getAuth().currentUser;
   const [posts, setPosts] = useState([]);
-  const [loading, setloading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     const fetchPosts = async () => {
-      const postsRef = collection(db, "admins", user.uid, "rejectedPosts");
+      const postsRef = collection(db, "admins", user.uid, "approvedPosts");
       const q = query(postsRef, orderBy("createdAt", "desc"));
 
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -32,6 +35,7 @@ const RejectedPostsScreen = () => {
           ...doc.data(),
         }));
         setPosts(fetchedPosts);
+        setLoading(false);
       });
 
       return () => unsubscribe();
@@ -41,10 +45,9 @@ const RejectedPostsScreen = () => {
   }, []);
 
   const renderItem = ({ item }) => {
-  
-
-    return (
-        <Link href={`/users/${user.uid}/posts/${item.id}`} asChild>
+    
+  return (
+      <Link href={`/admins/${user.uid}/approvedPosts/${item.id}`} asChild>
         <TouchableOpacity>
           <View style={styles.card}>
             <View style={styles.imageContainer}>
@@ -75,15 +78,16 @@ const RejectedPostsScreen = () => {
                 {item.title}
               </Text>
               <Text style={styles.author}>
-                By {item.userName} •{" "}
-                {moment(item.createdAt?.toDate()).fromNow()}
+                By {item.userName} • {moment(item.createdAt?.toDate()).fromNow()}
               </Text>
+             
             </View>
           </View>
         </TouchableOpacity>
       </Link>
     );
   };
+
   return (
     <View style={styles.container}>
       {loading ? (
@@ -155,4 +159,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RejectedPostsScreen;
+export default ApprovedPostsScreen;

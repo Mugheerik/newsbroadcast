@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig"; // Adjust path as necessary
 import { getAuth } from "firebase/auth";
-import { createPost } from "../Model/userPost.js"; // Import the createPost function
+import { createPost } from "../Model/userPost.js";
 
 const usePostViewModel = () => {
   const [posts, setPosts] = useState([]); // Initialized as an empty array
@@ -72,13 +72,19 @@ const usePostViewModel = () => {
   }, [user]);
 
   // Function to handle like
- 
 
   // Function to handle creating a new post
   const handleCreatePost = async () => {
-    if (title && description && file && mediaType&&category&&location) {
+    if (title && description && file && mediaType && category && location) {
       try {
-        await createPost(title, description, file, mediaType,category,location);
+        await createPost(
+          title,
+          description,
+          file,
+          mediaType,
+          category,
+          location
+        );
         setTitle("");
         setDescription("");
         setFile(null);
@@ -92,9 +98,6 @@ const usePostViewModel = () => {
       console.log("All fields are required");
     }
   };
-  
-
-
 
   return {
     posts,
@@ -109,12 +112,9 @@ const usePostViewModel = () => {
     category,
     setCategory,
     setMediaType,
-    location,
+
     setLocation,
     handleCreatePost,
-    
-   
-   
   };
 };
 

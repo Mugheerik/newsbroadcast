@@ -11,11 +11,56 @@ import {
   Dimensions,
   Animated,
   Pressable,
+  Alert
 } from "react-native";
 import newwImage from "../assets/images/neww.png";
 
+import * as Notifications from "expo-notifications";
 import { Link, useNavigation, Stack } from "expo-router";
+
+
+
+const requestNotificationPermissions = async () => {
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== "granted") {
+    Alert.alert("Permission not granted for notifications");
+  }
+};
+
+// This function will retrieve the Expo Push Token
+export const getPushToken = async () => {
+  const token = await Notifications.getExpoPushTokenAsync();
+  return token.data;
+};
 const index = () => {
+  const [notification, setNotification] = useState<Notifications.Notification | null>(null); // Explicitly type the state
+  const [notifications, setNotifications] = useState<Notifications.Notification[]>([]); // Array of notifications
+
+  // Request permission and retrieve push token
+  useEffect(() => {
+    // Request notification permissions
+    requestNotificationPermissions();
+
+    // Add listener to handle incoming notifications
+    const notificationListener = Notifications.addNotificationReceivedListener((notification) => {
+      setNotification(notification); // Set the notification
+      setNotifications((prevNotifications) => [
+        ...prevNotifications,
+        notification,
+      ]);
+    });
+
+    // Add listener to handle user response to notifications
+    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
+      console.log("Notification response:", response);
+    });
+
+    // Cleanup listeners on component unmount
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, []);
   const navigation = useNavigation();
 
   // Initial value for logo animation

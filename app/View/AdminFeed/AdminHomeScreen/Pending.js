@@ -19,17 +19,17 @@ import { Video } from "expo-av";
 const VIDEO_EXTENSIONS = [".mp4", ".mov", ".avi", ".mkv"];
 
 // Header Component
-const Header = React.memo(() => (
-  <View style={styles.header}>
-    <Image
-      source={{ uri: "https://example.com/your-image.png" }}
-      style={styles.headerImage}
-    />
-    <TouchableOpacity style={styles.notificationIcon}>
-      <Ionicons name="notifications-outline" size={24} color="black" />
-    </TouchableOpacity>
-  </View>
-));
+// const Header = React.memo(() => (
+//   <View style={styles.header}>
+//     <Image
+//       source={{ uri: "https://example.com/your-image.png" }}
+//       style={styles.headerImage}
+//     />
+//     <TouchableOpacity style={styles.notificationIcon}>
+//       <Ionicons name="notifications-outline" size={24} color="black" />
+//     </TouchableOpacity>
+//   </View>
+// ));
 
 // User Info Component
 const UserInfo = React.memo(({ userInfo, time }) => (
@@ -143,7 +143,7 @@ const IndexScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Header />
+      {/* <Header /> */}
       <FlatList
         data={posts}
         renderItem={renderItem}

@@ -31,4 +31,3 @@ export const updateUserDataInFirestore = async (userId, data) => {
     throw error;
   }
 };
-

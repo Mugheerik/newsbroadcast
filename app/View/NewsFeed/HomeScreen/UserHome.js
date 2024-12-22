@@ -8,17 +8,27 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Share,
   Alert,
-  Dimensions
+  Dimensions,
 } from "react-native";
 import { Link } from "expo-router";
 import { getAuth } from "firebase/auth";
-import { collection, query, orderBy, onSnapshot, getDocs, doc, setDoc, getDoc, deleteDoc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  setDoc,
+  deleteDoc,
+  getDocs,
+  doc,
+} from "firebase/firestore";
 import { db } from "../../../../firebaseConfig";
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import moment from "moment";
-import { Video } from "expo-av"; // Import Video component
+import { Video } from "expo-av";
+import { Share } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const IndexScreen = () => {
   const [categories, setCategories] = useState([]);
@@ -27,12 +37,16 @@ const IndexScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [favorites, setFavorites] = useState({});
 
+  const user = getAuth().currentUser;
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const categoriesRef = collection(db, "posts");
         const querySnapshot = await getDocs(categoriesRef);
-        const fetchedCategories = querySnapshot.docs.map((doc) => doc.id.toUpperCase());
+        const fetchedCategories = querySnapshot.docs.map((doc) =>
+          doc.id.toUpperCase()
+        );
         setCategories(fetchedCategories);
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -47,7 +61,12 @@ const IndexScreen = () => {
       if (selectedCategory === "All") {
         const allPosts = [];
         const unsubscribeFunctions = categories.map((category) => {
-          const postsRef = collection(db, "posts", category.toLowerCase(), "posts");
+          const postsRef = collection(
+            db,
+            "posts",
+            category.toLowerCase(),
+            "posts"
+          );
           const q = query(postsRef, orderBy("createdAt", "desc"));
 
           return onSnapshot(
@@ -60,7 +79,9 @@ const IndexScreen = () => {
                   ...doc.data(),
                 });
               });
-              allPosts.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+              allPosts.sort(
+                (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()
+              );
               setPosts([...allPosts]);
               setLoading(false);
             },
@@ -69,9 +90,15 @@ const IndexScreen = () => {
             }
           );
         });
-        return () => unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+        return () =>
+          unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
       } else {
-        const postsRef = collection(db, "posts", selectedCategory.toLowerCase(), "posts");
+        const postsRef = collection(
+          db,
+          "posts",
+          selectedCategory.toLowerCase(),
+          "posts"
+        );
         const q = query(postsRef, orderBy("createdAt", "desc"));
 
         const unsubscribe = onSnapshot(
@@ -98,59 +125,82 @@ const IndexScreen = () => {
     }
   }, [selectedCategory, categories]);
 
-  const renderPost = ({ item }) => {
-    const user = getAuth().currentUser;
-  
-    const handleFavorite = async () => {
-      if (!user) {
-        Alert.alert("Not logged in", "Please log in to favorite posts.");
-        return;
-      }
-    
-      try {
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      if (user) {
         const userFavoritesRef = collection(db, "users", user.uid, "favorites");
-        const postRef = doc(userFavoritesRef, item.id);
-    
-        // Optimistic UI update: immediately update the favorites state
-        setFavorites((prev) => ({ ...prev, [item.id]: !favorites[item.id] }));
-    
-        if (favorites[item.id]) {
-          // If it's already favorited, remove it
-          await deleteDoc(postRef);
-          Alert.alert("Success", "Post removed from favorites!");
-        } else {
-          // If it's not favorited, add it
-          await setDoc(postRef, {
-            ...item,
-            favoritedAt: new Date(),
-          });
-          Alert.alert("Success", "Post added to favorites!");
-        }
-      } catch (error) {
-        console.error("Error updating favorite state: ", error);
-        Alert.alert("Error", "Failed to update favorite state.");
-        // Revert optimistic UI update on error
-        setFavorites((prev) => ({ ...prev, [item.id]: favorites[item.id] }));
+        const querySnapshot = await getDocs(userFavoritesRef);
+        const userFavorites = querySnapshot.docs.reduce((acc, doc) => {
+          acc[doc.id] = true; // Mark as favorited
+          return acc;
+        }, {});
+        setFavorites(userFavorites);
       }
     };
-  
-    const handleShare = async () => {
-      try {
-        await Share.share({
-          message: `Check out this post: ${item.title}\n\n${
-            item.mediaUrl || "No media available"
-          }`,
+
+    if (user) {
+      fetchFavorites();
+    }
+  }, [user]);
+
+  const handleShare = async (item) => {
+    try {
+      const message = `
+        Check out this post:
+        Title: ${item.title}
+        Description: ${item.description || "No description available"}
+        Media: ${item.mediaUrl || "No media available"}
+        Post URL: ${item.url || "No URL available"}
+      `;
+
+      await Share.share({
+        message: message,
+      });
+    } catch (error) {
+      console.error("Error sharing post: ", error);
+      Alert.alert("Error", "Failed to share post.");
+    }
+  };
+  const handleFavorite = async (item) => {
+    if (!user) {
+      Alert.alert("Not logged in", "Please log in to favorite posts.");
+      return;
+    }
+
+    try {
+      const userFavoritesRef = collection(db, "users", user.uid, "favorites");
+      const postRef = doc(userFavoritesRef, item.id);
+
+      if (favorites[item.id]) {
+        // If it's already favorited, remove it
+        await deleteDoc(postRef);
+        setFavorites((prev) => ({ ...prev, [item.id]: false }));
+        Alert.alert("Success", "Post removed from favorites!");
+      } else {
+        // If it's not favorited, add it
+        await setDoc(postRef, {
+          ...item,
+          favoritedAt: new Date(),
         });
-      } catch (error) {
-        console.error("Error sharing post: ", error);
-        Alert.alert("Error", "Failed to share post.");
+        setFavorites((prev) => ({ ...prev, [item.id]: true }));
+        Alert.alert("Success", "Post added to favorites!");
       }
-    };
-  
+    } catch (error) {
+      console.error("Error updating favorite state: ", error);
+      Alert.alert("Error", "Failed to update favorite state.");
+    }
+  };
+
+  const renderPost = ({ item }) => {
     return (
       <Link href={`/posts/${item.category}/posts/${item.id}`} asChild>
         <TouchableOpacity>
           <View style={styles.card}>
+            {item.promotional && (
+              <View style={styles.banner}>
+                <Text style={styles.bannerText}>Promotional</Text>
+              </View>
+            )}
             <View style={styles.imageContainer}>
               {item.mediaType === "video" ? (
                 <Video
@@ -179,18 +229,26 @@ const IndexScreen = () => {
                 {item.title}
               </Text>
               <Text style={styles.author}>
-                By {item.userName} • {moment(item.createdAt?.toDate()).fromNow()}
+                By {item.userName} •{" "}
+                {moment(item.createdAt?.toDate()).fromNow()}
+              </Text>
+              <Text style={styles.author}>
+                {item.location} 
               </Text>
               <View style={styles.actions}>
-                <TouchableOpacity onPress={handleFavorite}>
+                <TouchableOpacity onPress={() => handleFavorite(item)}>
                   <Ionicons
                     name={favorites[item.id] ? "bookmark" : "bookmark-outline"}
                     size={24}
                     color={favorites[item.id] ? "red" : "black"}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleShare}>
-                  <Ionicons name="share-social-outline" size={24} color="black" />
+                <TouchableOpacity onPress={() => handleShare(item)}>
+                  <Ionicons
+                    name="share-social-outline"
+                    size={24}
+                    color="black"
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -199,26 +257,42 @@ const IndexScreen = () => {
       </Link>
     );
   };
-  
+
   return (
+   
     <View style={styles.container}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryTabs}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoryTabs}
+      >
         <TouchableOpacity
           style={[styles.tab, selectedCategory === "All" && styles.selectedTab]}
           onPress={() => setSelectedCategory("All")}
         >
-          <Text style={[styles.tabText, selectedCategory === "All" && styles.selectedTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              selectedCategory === "All" && styles.selectedTabText,
+            ]}
+          >
             All
           </Text>
         </TouchableOpacity>
         {categories.map((category) => (
           <TouchableOpacity
             key={category}
-            style={[styles.tab, selectedCategory === category && styles.selectedTab]}
+            style={[
+              styles.tab,
+              selectedCategory === category && styles.selectedTab,
+            ]}
             onPress={() => setSelectedCategory(category)}
           >
             <Text
-              style={[styles.tabText, selectedCategory === category && styles.selectedTabText]}
+              style={[
+                styles.tabText,
+                selectedCategory === category && styles.selectedTabText,
+              ]}
             >
               {category}
             </Text>
@@ -227,7 +301,7 @@ const IndexScreen = () => {
       </ScrollView>
 
       <Text style={styles.subHeader}>Trending Topic</Text>
-
+    
       {loading ? (
         <ActivityIndicator size="large" color="#007BFF" />
       ) : (
@@ -238,11 +312,33 @@ const IndexScreen = () => {
           contentContainerStyle={styles.list}
         />
       )}
+      
     </View>
+     
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingHorizontal: 15,
+  },
+  banner: {
+    backgroundColor: "gold",
+    padding: 5,
+    position: "absolute",
+    marginLeft: 250,
+    top: 0,
+    left: 0,
+    zIndex: 1,
+    borderRadius: 5,
+  },
+  bannerText: {
+    color: "black",
+    fontWeight: "bold",
+    fontSize: 12,
+  },
   container: {
     flex: 1,
     backgroundColor: "#fff",
@@ -278,8 +374,9 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1, // Ensures consistent space for content
-    height: Dimensions.get("window").height * 0.75, // Set a fixed height for the list
+     // Set a fixed height for the list
     paddingBottom: 15,
+    
   },
   card: {
     flexDirection: "row",
@@ -293,6 +390,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     backgroundColor: "#e0e0e0",
+    marginTop:15,
   },
   media: {
     width: "100%",
@@ -321,6 +419,5 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
-
 
 export default IndexScreen;

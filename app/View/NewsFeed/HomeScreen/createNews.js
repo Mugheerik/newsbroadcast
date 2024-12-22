@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,14 +9,17 @@ import {
   Dimensions,
   ActivityIndicator,
   Image,
-  FlatList, // Added FlatList import
   Alert,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import usePostViewModel from "../../../ModelView/postViewModel";
 import * as ImagePicker from "expo-image-picker";
 import { Video } from "expo-av";
-import locationData from "../../../../assets/locations.json";
+import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firebase Firestore imports
+import { getAuth } from "firebase/auth"; // Firebase Auth import
+
+const db = getFirestore();
+const auth = getAuth();
 
 const PostPage = () => {
   const {
@@ -30,26 +33,46 @@ const PostPage = () => {
     setMediaType,
     category,
     setCategory,
-    location,
     setLocation,
     handleCreatePost,
   } = usePostViewModel();
 
-  const [loading, setLoading] = useState(false); // State for loading indicator
-  const [openDropdown, setOpenDropdown] = useState(false); // Dropdown state
-  const [isCustomInput, setIsCustomInput] = useState(false); // Custom input toggle
-  const [customCategory, setCustomCategory] = useState(""); // Custom category value
-  const [filteredLocations, setFilteredLocations] = useState([]);
-  const [showDropdown, setShowDropdown] = useState(false);
- 
-
+  const [loading, setLoading] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(false);
+  const [isCustomInput, setIsCustomInput] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
   const [categories, setCategories] = useState([
     { label: "Sports", value: "sports" },
     { label: "Tech", value: "tech" },
     { label: "Entertainment", value: "entertainment" },
     { label: "Crime", value: "crime" },
     { label: "Politics", value: "politics" },
-  ]); // Predefined categories
+  ]);
+ 
+
+  // Function to get current user data (location)
+  const fetchUserLocation = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid); // Get user's document
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setLocation(userDoc.data().location); // Assuming location is stored in 'location' field
+        } else {
+          console.log("User document not found!");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      Alert.alert("Error", "Couldn't fetch user location.");
+    }
+  };
+
+  // Fetch user location when component mounts
+  useEffect(() => {
+    fetchUserLocation();
+  }, []);
 
   const pickFile = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -75,24 +98,13 @@ const PostPage = () => {
     }
   };
 
-  const handleLocationInput = (text) => {
-    setLocation(text);
-    if (text.trim() !== "") {
-      const results = locationData.filter((item) =>
-        item.Name.toLowerCase().includes(text.toLowerCase())
-      );
-      setFilteredLocations(results);
-      setShowDropdown(results.length > 0);
-    } else {
-      setShowDropdown(false);
-    }
-  };
-
   const handlePostCreation = async () => {
     const Category = isCustomInput ? customCategory : category;
-    if (file && Category) {
+
+    if (file && Category ) {
       setLoading(true);
       try {
+        // Include user location when creating post
         await handleCreatePost(title, description, file, mediaType, Category);
         onClose();
       } catch (error) {
@@ -118,34 +130,6 @@ const PostPage = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Create a Post</Text>
-
-      <View style={styles.input}>
-        <TextInput
-          placeholder="Enter Location"
-          value={location}
-          onChangeText={handleLocationInput}
-        
-        />
-        {showDropdown && (
-          <FlatList
-            data={filteredLocations}
-            keyExtractor={(item, index) => index.toString()}
-            style={styles.dropdown}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.dropdownItem}
-                onPress={() => {
-                  setLocation(item.Name);
-                  setShowDropdown(false);
-                }}
-              >
-                <Text style={styles.dropdownText}>{item.Name}</Text>
-              </TouchableOpacity>
-            )}
-          />
-        )}
-      </View>
-
       <TextInput
         style={styles.input}
         placeholder="Title"

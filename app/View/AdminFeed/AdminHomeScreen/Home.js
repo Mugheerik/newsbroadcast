@@ -16,6 +16,7 @@ import { Video } from "expo-av"; // Import Video component for video playback
 const Myposts = () => {
   const [posts, setPosts] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false); // Track if the user is an admin
+  const [expandedPost, setExpandedPost] = useState(null); // Track which post's description is expanded
 
   useEffect(() => {
     const user = getAuth().currentUser;
@@ -26,7 +27,6 @@ const Myposts = () => {
         const userDoc = await getDoc(userDocRef);
         const userData = userDoc.data();
 
-        // Assuming the user's role is stored in a field called 'roles' as an array
         if (userData && userData.status && userData.status.includes("admin")) {
           setIsAdmin(true); // Set the user as admin if they have the role
         }
@@ -79,6 +79,10 @@ const Myposts = () => {
     }
   };
 
+  const toggleDescription = (postId) => {
+    setExpandedPost(expandedPost === postId ? null : postId); // Toggle expanded state for specific post
+  };
+
   const renderItem = ({ item }) => {
     const postDate = item.createdAt ? item.createdAt.toDate() : null;
     const formattedDate = postDate
@@ -86,8 +90,6 @@ const Myposts = () => {
       : "No date available";
 
     // Handle long descriptions with "Read More"
-    const [expanded, setExpanded] = useState(false);
-    const toggleDescription = () => setExpanded(!expanded);
     const truncatedDescription =
       item.description && item.description.length > 100
         ? item.description.substring(0, 100) + "..."
@@ -121,12 +123,12 @@ const Myposts = () => {
 
                 {/* Description */}
                 <Text style={styles.cardDescription}>
-                  {expanded ? item.description : truncatedDescription}
+                  {expandedPost === item.id ? item.description : truncatedDescription}
                 </Text>
                 {item.description && item.description.length > 100 && (
-                  <TouchableOpacity onPress={toggleDescription}>
+                  <TouchableOpacity onPress={() => toggleDescription(item.id)}>
                     <Text style={styles.readMoreText}>
-                      {expanded ? "Show Less" : "Read More"}
+                      {expandedPost === item.id ? "Show Less" : "Read More"}
                     </Text>
                   </TouchableOpacity>
                 )}

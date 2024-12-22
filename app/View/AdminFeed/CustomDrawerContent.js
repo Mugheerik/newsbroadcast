@@ -6,24 +6,30 @@ import { useDrawerViewModel } from "../../ModelView/DrawerViewModel"; // Import 
 import { useRouter } from "expo-router";
 import { Image } from "react-native";
 // Dummy user data for dynamic header (replace with real user data as needed)
-
+import { useEffect } from "react";
 export default function CustomDrawerContent() {
-  const { userdata, handleLogout } = useDrawerViewModel();
+  const { userdata, handleLogout, subscribeToUserData } = useDrawerViewModel();
   const userData = userdata;
   // Use the ViewModel
-
+  useEffect(() => {
+    // Subscribe to user data changes
+    const unsubscribe = subscribeToUserData();
+    return () => unsubscribe(); // Cleanup on unmount
+  }, []);
   const router = useRouter();
 
   return (
     <View style={styles.drawerContainer}>
       {/* Dynamic User Info Section */}
       <View style={styles.userInfoContainer}>
-        <View style={styles.avatarContainer}>
-          <Image source={{ uri: userData.photoURL }} style={styles.avatarText} />
-          
+        <View >
+          <Image
+            source={{ uri: userData?.profilePicture }}
+            style={styles.profileImage}
+          />
         </View>
-        <Text style={styles.userName}>{userData.name}</Text>
-        <Text style={styles.userEmail}>{userData.email}</Text>
+        <Text style={styles.userName}>{userData?.name}</Text>
+        <Text style={styles.userEmail}>{userData?.location}</Text>
         <TouchableOpacity
           style={styles.drawerItem}
           onPress={() => router.push("/View/AdminFeed/UserProfile")}
@@ -103,4 +109,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
+  profileImage: { width: 120, height: 120, borderRadius: 60, marginBottom: 10 },
 });

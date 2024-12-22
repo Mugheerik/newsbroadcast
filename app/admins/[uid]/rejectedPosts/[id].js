@@ -7,13 +7,13 @@ import moment from "moment"; // To format timestamps
 import { Video } from "expo-av"; // Import the Video component
 
 const PostDetailScreen = () => {
-  const { uid,id } = useLocalSearchParams(); // Get the id from the route params
+  const { uid, id } = useLocalSearchParams(); // Get the id from the route params
   const [post, setPost] = useState(null);
   const [user, setUser] = useState(null); // State to store user details
 
   useEffect(() => {
     const fetchPost = async () => {
-      const postRef =doc(db, "users",uid, 'posts',id);
+        const postRef = doc(db, "admins", uid, "rejectedPosts", id);
       const postSnapshot = await getDoc(postRef);
       if (postSnapshot.exists()) {
         setPost(postSnapshot.data());
@@ -28,7 +28,7 @@ const PostDetailScreen = () => {
       }
     };
 
-    if (uid&&id) {
+    if (uid && id) {
       fetchPost();
     }
   }, [id]);
@@ -37,10 +37,10 @@ const PostDetailScreen = () => {
   const isVideo = (url) => {
     if (!url) return false; // Return false if url is undefined or null
     const videoExtensions = [".mp4", ".mov", ".avi", ".mkv"];
-    
+
     // Check if the URL has any of the video extensions before any query parameters
     const urlWithoutParams = url.split("?")[0]; // Remove query parameters
-    return videoExtensions.some(ext => urlWithoutParams.endsWith(ext));
+    return videoExtensions.some((ext) => urlWithoutParams.endsWith(ext));
   };
 
   if (!post) {
@@ -54,11 +54,12 @@ const PostDetailScreen = () => {
   const isMediaVideo = isVideo(post.mediaUrl); // Determine if the media is a video
 
   return (
-    
     <ScrollView style={styles.container}>
+      <Text style={styles.title}>{post.category.toUpperCase()}</Text>
+      <Text style={styles.title}>{post.title}</Text>
       {/* Render video or image based on the media type */}
-      {post.mediaUrl && (
-        isMediaVideo ? (
+      {post.mediaUrl &&
+        (isMediaVideo ? (
           <Video
             source={{ uri: post.mediaUrl }}
             style={styles.postMedia}
@@ -68,16 +69,20 @@ const PostDetailScreen = () => {
           />
         ) : (
           <Image source={{ uri: post.mediaUrl }} style={styles.postMedia} />
-        )
-      )}
+        ))}
       <View style={styles.detailsContainer}>
-        <Text style={styles.title}>{post.title}</Text>
+      
         <Text style={styles.description}>{post.description}</Text>
-        <Text style={styles.user}>Posted by: {user?.name || "Unknown User"}</Text>
+        <Text style={styles.user}>
+          Posted by: {user?.name || "Unknown User"}
+        </Text>
         <Text style={styles.date}>
           {moment(post.createdAt?.toDate()).format("MMMM Do YYYY, h:mm:ss a")}
         </Text>
-        <Text style={styles.likes}>Likes: {post.likes.length}</Text>
+        <Text style={styles.user}>
+         {post.location || "Unknown Location"}
+        </Text>
+       
       </View>
     </ScrollView>
   );
@@ -85,7 +90,7 @@ const PostDetailScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop:50,
+    marginTop: 50,
     flex: 1,
     padding: 10,
     backgroundColor: "#f7f7f7",

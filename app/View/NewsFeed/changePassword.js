@@ -1,8 +1,15 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 
-const PasswordResetScreen = () => {
+const PasswordResetScreen = ({ closeModal }) => {
   const [email, setEmail] = useState(""); // State to store user email
   const [loading, setLoading] = useState(false);
 
@@ -21,9 +28,13 @@ const PasswordResetScreen = () => {
         "Success",
         "Password reset email sent! Check your email inbox to proceed."
       );
+      closeModal(); // Close the modal after success
     } catch (error) {
       console.error("Error sending password reset email:", error);
-      Alert.alert("Error", error.message || "Failed to send password reset email.");
+      Alert.alert(
+        "Error",
+        error.message || "Failed to send password reset email."
+      );
     } finally {
       setLoading(false);
     }
@@ -33,7 +44,8 @@ const PasswordResetScreen = () => {
     <View style={styles.container}>
       <Text style={styles.header}>Reset Your Password</Text>
       <Text style={styles.subText}>
-        Enter your email address below, and we'll send you instructions to reset your password.
+        Enter your email address below, and we'll send you instructions to reset
+        your password.
       </Text>
       <TextInput
         style={styles.input}
@@ -44,7 +56,11 @@ const PasswordResetScreen = () => {
         keyboardType="email-address"
         autoCapitalize="none"
       />
-      <TouchableOpacity style={styles.button} onPress={handlePasswordReset} disabled={loading}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handlePasswordReset}
+        disabled={loading}
+      >
         <Text style={styles.buttonText}>
           {loading ? "Sending..." : "Send Password Reset Email"}
         </Text>
@@ -59,7 +75,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "white",
   },
   header: {
     fontSize: 24,
@@ -74,8 +90,8 @@ const styles = StyleSheet.create({
     color: "#555",
   },
   input: {
-    width: "100%",
-    padding: 15,
+    width: 300,
+    padding: 10,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
