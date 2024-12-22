@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1, // Ensures consistent space for content
-     // Set a fixed height for the list
+    height: Dimensions.get("window").height * 1.75, // Set a fixed height for the list
     paddingBottom: 15,
     
   },
@@ -389,16 +389,18 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: 100,
     height: 100,
-    backgroundColor: "#e0e0e0",
-    marginTop:15,
+    backgroundColor: "#f9f9f9",
+    marginTop:10,
+    padding:10,
   },
   media: {
     width: "100%",
     height: "100%",
+    
   },
   content: {
     flex: 1,
-    padding: 10,
+  
   },
   category: {
     fontSize: 12,

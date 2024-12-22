@@ -1,27 +1,9 @@
 import React, { useState, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Image,
-  ActivityIndicator,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-} from "react-native";
+import { View, Text, FlatList, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Modal, TextInput } from "react-native";
 import { getAuth } from "firebase/auth";
-import {
-  collection,
-  onSnapshot,
-  doc,
-  getDoc,
-  deleteDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { collection, onSnapshot, doc, getDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../../../firebaseConfig";
 import moment from "moment";
 import { Video } from "expo-av";
@@ -34,10 +16,18 @@ const Myposts = () => {
   const [editingPost, setEditingPost] = useState(null);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
-  const [editedImage, setEditedImage] = useState(null);
+  const [editedMedia, setEditedMedia] = useState(null);
+  const [mediaType, setMediaType] = useState(null); // New state to track media type (image/video)
 
   const user = getAuth().currentUser;
 
+
+  const isVideo = (url) => {
+    if (!url) return false;
+    const videoExtensions = [".mp4", ".mov", ".avi", ".mkv"];
+    const urlWithoutParams = url.split("?")[0];
+    return videoExtensions.some((ext) => urlWithoutParams.endsWith(ext));
+  };
   useEffect(() => {
     if (user) {
       const unsubscribe = onSnapshot(
@@ -59,9 +49,7 @@ const Myposts = () => {
             }
           });
 
-          const sortedPosts = postsData.sort(
-            (a, b) => b.createdAt - a.createdAt
-          );
+          const sortedPosts = postsData.sort((a, b) => b.createdAt - a.createdAt);
           setPosts(sortedPosts);
         },
         (error) => {
@@ -94,30 +82,33 @@ const Myposts = () => {
     setEditingPost(post);
     setEditedTitle(post.title);
     setEditedDescription(post.description);
-    setEditedImage(post.mediaUrl);
+    setEditedMedia(post.mediaUrl);
+    setMediaType(post.mediaUrl && isVideo(post.mediaUrl) ? "video" : "image");
     setModalVisible(true);
   };
-  const pickImage = async () => {
+
+  const pickMedia = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.All, // Allow both images and videos
       allowsEditing: true,
-      aspect: [4, 3],
       quality: 1,
     });
 
     if (!result.canceled) {
-      const imageUri = result.assets[0].uri;
+      const mediaUri = result.assets[0].uri;
+      const mediaType = result.assets[0].type; // image or video
+      setMediaType(mediaType);
 
       // Upload to Firebase Storage
       const storage = getStorage();
       const storageRef = ref(storage, `posts/${editingPost.id}/${Date.now()}`);
-      const response = await fetch(imageUri);
+      const response = await fetch(mediaUri);
       const blob = await response.blob();
 
       const snapshot = await uploadBytes(storageRef, blob);
       const downloadURL = await getDownloadURL(snapshot.ref);
 
-      setEditedImage(downloadURL);
+      setEditedMedia(downloadURL);
     }
   };
 
@@ -128,7 +119,7 @@ const Myposts = () => {
     await updateDoc(postRef, {
       title: editedTitle,
       description: editedDescription,
-      mediaUrl: editedImage, // Update the media URL
+      mediaUrl: editedMedia, // Update the media URL
     });
 
     alert("Post updated successfully.");
@@ -138,41 +129,21 @@ const Myposts = () => {
 
   const renderItem = ({ item }) => {
     const postDate = item.createdAt ? item.createdAt.toDate() : null;
-    const formattedDate = postDate
-      ? moment(postDate).fromNow()
-      : "No date available";
+    const formattedDate = postDate ? moment(postDate).fromNow() : "No date available";
     const userInfo = userDetails[item.userId] || {};
-    const isVideo = (url) => {
-      if (!url) return false;
-      const videoExtensions = [".mp4", ".mov", ".avi", ".mkv"];
-      const urlWithoutParams = url.split("?")[0];
-      return videoExtensions.some((ext) => urlWithoutParams.endsWith(ext));
-    };
+
+    
 
     return (
       <View style={styles.card}>
-        <View
-          style={[
-            styles.statusBanner,
-            { backgroundColor: item.approved ? "green" : "red" },
-          ]}
-        >
-          <Text style={styles.statusText}>
-            {item.approved ? "Approved" : "Not Approved"}
-          </Text>
+        <View style={[styles.statusBanner, { backgroundColor: item.approved ? "green" : "red" }]}>
+          <Text style={styles.statusText}>{item.approved ? "Approved" : "Not Approved"}</Text>
         </View>
 
         <View style={styles.headerContainer}>
-          {userInfo.photoURL && (
-            <Image
-              source={{ uri: userInfo.photoURL }}
-              style={styles.profileImage}
-            />
-          )}
+          {userInfo.photoURL && <Image source={{ uri: userInfo.photoURL }} style={styles.profileImage} />}
           <View style={styles.headerTextContainer}>
-            <Text style={styles.userName}>
-              {userInfo.name || "Unknown User"}
-            </Text>
+            <Text style={styles.userName}>{userInfo.name || "Unknown User"}</Text>
             <Text style={styles.timestamp}>{formattedDate}</Text>
           </View>
         </View>
@@ -181,22 +152,7 @@ const Myposts = () => {
           {item.mediaUrl &&
             (isVideo(item.mediaUrl) ? (
               <View>
-                <Video
-                  source={{ uri: item.mediaUrl }}
-                  style={styles.cardMedia}
-                  useNativeControls
-                  resizeMode="contain"
-                  shouldPlay={false}
-                  onLoadStart={() => setVideoLoading(true)}
-                  onLoad={() => setVideoLoading(false)}
-                  onError={() => {
-                    setVideoLoading(false);
-                    console.error("Error loading video");
-                  }}
-                />
-                {videoLoading && (
-                  <ActivityIndicator size="large" color="#0000ff" />
-                )}
+                <Video source={{ uri: item.mediaUrl }} style={styles.cardMedia} useNativeControls resizeMode="contain" shouldPlay={false} />
               </View>
             ) : (
               <Image source={{ uri: item.mediaUrl }} style={styles.cardMedia} />
@@ -209,19 +165,13 @@ const Myposts = () => {
 
         <View style={styles.actionButtons}>
           {!item.approved && (
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => openEditModal(item)}
-            >
+            <TouchableOpacity style={styles.editButton} onPress={() => openEditModal(item)}>
               <Text style={styles.editText}>Edit</Text>
             </TouchableOpacity>
           )}
 
           {!item.approved && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => deletePost(item.id)}
-            >
+            <TouchableOpacity style={styles.deleteButton} onPress={() => deletePost(item.id)}>
               <Text style={styles.deleteText}>Delete</Text>
             </TouchableOpacity>
           )}
@@ -232,28 +182,13 @@ const Myposts = () => {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={posts}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.postList}
-      />
+      <FlatList data={posts} renderItem={renderItem} keyExtractor={(item) => item.id} contentContainerStyle={styles.postList} />
 
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Post</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editedTitle}
-              onChangeText={setEditedTitle}
-              placeholder="Title"
-            />
+            <TextInput style={styles.modalInput} value={editedTitle} onChangeText={setEditedTitle} placeholder="Title" />
             <TextInput
               style={styles.modalInput}
               value={editedDescription}
@@ -261,20 +196,18 @@ const Myposts = () => {
               placeholder="Description"
               multiline
             />
-            {editedImage && (
-              <Image source={{ uri: editedImage }} style={styles.cardMedia} />
+            {editedMedia && mediaType === "image" && <Image source={{ uri: editedMedia }} style={styles.cardMedia} />}
+            {editedMedia && mediaType === "video" && (
+              <Video source={{ uri: editedMedia }} style={styles.cardMedia} useNativeControls resizeMode="contain" shouldPlay={false} />
             )}
-            <TouchableOpacity style={styles.saveButton} onPress={pickImage}>
-              <Text style={styles.saveText}>Change Image</Text>
+            <TouchableOpacity style={styles.saveButton} onPress={pickMedia}>
+              <Text style={styles.saveText}>Change Media</Text>
             </TouchableOpacity>
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.saveButton} onPress={updatePost}>
                 <Text style={styles.saveText}>Save</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
-              >
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
             </View>
