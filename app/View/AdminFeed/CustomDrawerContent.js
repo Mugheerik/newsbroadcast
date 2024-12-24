@@ -54,14 +54,14 @@ export default function CustomDrawerContent() {
 
       <TouchableOpacity
         style={styles.drawerItem}
-        onPress={() => router.push("/View/AdminFeed/ApprovedPosts")}
+        onPress={() => router.push("/View/AdminFeed/ApprovedNews")}
       >
         <Text>Approved Posts</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.drawerItem}
-        onPress={() => router.push("/View/AdminFeed/rejectedposts")}
+        onPress={() => router.push("/View/AdminFeed/rejectedNews")}
       >
         <Text>Rejected Posts</Text>
       </TouchableOpacity>
