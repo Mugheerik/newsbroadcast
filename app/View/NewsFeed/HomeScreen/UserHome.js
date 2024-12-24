@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  TextInput,
 } from "react-native";
 import { Link } from "expo-router";
 import { getAuth } from "firebase/auth";
@@ -36,6 +37,9 @@ const IndexScreen = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [favorites, setFavorites] = useState({});
+  const [locations, setLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState("All");
+  const [showLocationInput, setShowLocationInput] = useState(false);
 
   const user = getAuth().currentUser;
 
@@ -55,75 +59,125 @@ const IndexScreen = () => {
     fetchCategories();
   }, []);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      if (selectedCategory === "All") {
-        const allPosts = [];
-        const unsubscribeFunctions = categories.map((category) => {
-          const postsRef = collection(
-            db,
-            "posts",
-            category.toLowerCase(),
-            "posts"
-          );
-          const q = query(postsRef, orderBy("createdAt", "desc"));
+ useEffect(() => {
+  const fetchPosts = async () => {
+    setLoading(true);
+    let filteredPosts = [];
 
-          return onSnapshot(
-            q,
-            (querySnapshot) => {
-              querySnapshot.forEach((doc) => {
-                allPosts.push({
-                  id: doc.id,
-                  category,
-                  ...doc.data(),
-                });
-              });
-              allPosts.sort(
-                (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()
-              );
-              setPosts([...allPosts]);
-              setLoading(false);
-            },
-            (error) => {
-              console.error("Error fetching posts:", error);
-            }
-          );
-        });
-        return () =>
-          unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
-      } else {
+    if (selectedCategory === "All" && selectedLocation === "All") {
+      // Fetch all posts from all categories (no filters)
+      const allPosts = [];
+      const unsubscribeFunctions = categories.map((category) => {
         const postsRef = collection(
           db,
           "posts",
-          selectedCategory.toLowerCase(),
+          category.toLowerCase(),
           "posts"
         );
         const q = query(postsRef, orderBy("createdAt", "desc"));
 
-        const unsubscribe = onSnapshot(
+        return onSnapshot(
           q,
           (querySnapshot) => {
-            const categoryPosts = querySnapshot.docs.map((doc) => ({
-              id: doc.id,
-              category: selectedCategory,
-              ...doc.data(),
-            }));
-            setPosts(categoryPosts);
+            querySnapshot.forEach((doc) => {
+              allPosts.push({
+                id: doc.id,
+                category,
+                ...doc.data(),
+              });
+            });
+            allPosts.sort(
+              (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()
+            );
+            setPosts([...allPosts]);
             setLoading(false);
           },
           (error) => {
             console.error("Error fetching posts:", error);
           }
         );
-        return () => unsubscribe();
-      }
-    };
+      });
+      return () =>
+        unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+    } else if (selectedCategory === "All" && selectedLocation !== "All") {
+      // Fetch all posts from all categories but filter by selected location
+      const allPosts = [];
+      const unsubscribeFunctions = categories.map((category) => {
+        const postsRef = collection(
+          db,
+          "posts",
+          category.toLowerCase(),
+          "posts"
+        );
+        const q = query(postsRef, orderBy("createdAt", "desc"));
 
-    if (categories.length > 0) {
-      fetchPosts();
+        return onSnapshot(
+          q,
+          (querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+              const post = {
+                id: doc.id,
+                category,
+                ...doc.data(),
+              };
+              // Apply location filter here
+              if (selectedLocation === "All" || post.location === selectedLocation) {
+                allPosts.push(post);
+              }
+            });
+            allPosts.sort(
+              (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()
+            );
+            setPosts([...allPosts]);
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Error fetching posts:", error);
+          }
+        );
+      });
+      return () =>
+        unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+    } else {
+      // Fetch posts based on selected category and location
+      const postsRef = collection(
+        db,
+        "posts",
+        selectedCategory.toLowerCase(),
+        "posts"
+      );
+      const q = query(postsRef, orderBy("createdAt", "desc"));
+
+      const unsubscribe = onSnapshot(
+        q,
+        (querySnapshot) => {
+          const categoryPosts = querySnapshot.docs
+            .map((doc) => ({
+              id: doc.id,
+              category: selectedCategory,
+              ...doc.data(),
+            }))
+            .filter(
+              (post) =>
+                selectedLocation === "All" ||
+                post.location === selectedLocation
+            );
+          setPosts(categoryPosts);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching posts:", error);
+        }
+      );
+      return () => unsubscribe();
     }
-  }, [selectedCategory, categories]);
+  };
+
+  if (categories.length > 0) {
+    fetchPosts();
+  }
+}, [selectedCategory, selectedLocation, categories]);
+
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -161,6 +215,7 @@ const IndexScreen = () => {
       Alert.alert("Error", "Failed to share post.");
     }
   };
+
   const handleFavorite = async (item) => {
     if (!user) {
       Alert.alert("Not logged in", "Please log in to favorite posts.");
@@ -232,9 +287,7 @@ const IndexScreen = () => {
                 By {item.userName} •{" "}
                 {moment(item.createdAt?.toDate()).fromNow()}
               </Text>
-              <Text style={styles.author}>
-                {item.location} 
-              </Text>
+              <Text style={styles.author}>{item.location}</Text>
               <View style={styles.actions}>
                 <TouchableOpacity onPress={() => handleFavorite(item)}>
                   <Ionicons
@@ -259,7 +312,6 @@ const IndexScreen = () => {
   };
 
   return (
-   
     <View style={styles.container}>
       <ScrollView
         horizontal
@@ -301,7 +353,30 @@ const IndexScreen = () => {
       </ScrollView>
 
       <Text style={styles.subHeader}>Trending Topic</Text>
-    
+
+      {/* Location Input toggle */}
+      <View style={styles.locationContainer}>
+        <TouchableOpacity
+          onPress={() => setShowLocationInput(!showLocationInput)}
+          style={styles.locationIcon}
+        >
+          <Ionicons
+            name={showLocationInput ? "chevron-up" : "chevron-down"}
+            size={24}
+            color="black"
+          />
+        </TouchableOpacity>
+
+        {showLocationInput && (
+          <TextInput
+            style={styles.locationInput}
+            value={selectedLocation}
+            onChangeText={setSelectedLocation}
+            placeholder="Enter Location"
+          />
+        )}
+      </View>
+
       {loading ? (
         <ActivityIndicator size="large" color="#007BFF" />
       ) : (
@@ -312,9 +387,7 @@ const IndexScreen = () => {
           contentContainerStyle={styles.list}
         />
       )}
-      
     </View>
-     
   );
 };
 
@@ -339,11 +412,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 12,
   },
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingHorizontal: 15,
-  },
   categoryTabs: {
     marginBottom: 10,
     paddingVertical: 5,
@@ -357,7 +425,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   selectedTab: {
-    backgroundColor: "#007BFF",
+    backgroundColor: "black",
   },
   tabText: {
     fontSize: 14,
@@ -374,9 +442,8 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1, // Ensures consistent space for content
-    height: Dimensions.get("window").height * 1.75, // Set a fixed height for the list
+    height: Dimensions.get("window").height * 2, // Set a fixed height for the list
     paddingBottom: 15,
-    
   },
   card: {
     flexDirection: "row",
@@ -390,17 +457,15 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     backgroundColor: "#f9f9f9",
-    marginTop:10,
-    padding:10,
+    marginTop: 10,
+    padding: 10,
   },
   media: {
     width: "100%",
     height: "100%",
-    
   },
   content: {
     flex: 1,
-  
   },
   category: {
     fontSize: 12,
@@ -419,6 +484,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 10,
+  },
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  locationIcon: {
+    marginRight: 10,
+  },
+  locationInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 5,
+    borderRadius: 5,
+    width: "80%",
   },
 });
 
