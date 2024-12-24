@@ -7,9 +7,10 @@ import { router } from "expo-router";
 export const useSignupViewModel = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [cnic, setCnic] = useState("");
   const [location, setLocation] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("user");
   const profilePicture = null;
   const handleSignUp = async () => {
     try {
@@ -18,6 +19,7 @@ export const useSignupViewModel = () => {
         name,
         email,
         location,
+        cnic,
         status,
         profilePicture,
       });
@@ -35,6 +37,8 @@ export const useSignupViewModel = () => {
     setEmail,
     location,
     setLocation,
+    cnic,
+    setCnic,
     password,
     setStatus,
     setPassword,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import 'react-native-gesture-handler';
-import 'react-native-reanimated';
+import "react-native-gesture-handler";
+import "react-native-reanimated";
 
 import {
   View,
@@ -9,17 +9,24 @@ import {
   StyleSheet,
   Image,
   Dimensions,
-  Animated,
   Pressable,
-  Alert
+  Alert,
 } from "react-native";
 import newwImage from "../assets/images/neww.png";
 
 import * as Notifications from "expo-notifications";
 import { Link, useNavigation, Stack } from "expo-router";
 
+// Configure notification behavior
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
-
+// Request notification permissions
 const requestNotificationPermissions = async () => {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== "granted") {
@@ -27,53 +34,52 @@ const requestNotificationPermissions = async () => {
   }
 };
 
-// This function will retrieve the Expo Push Token
-export const getPushToken = async () => {
-  const token = await Notifications.getExpoPushTokenAsync();
-  return token.data;
+// Retrieve the Expo Push Token
+const getPushToken = async () => {
+  const { data: token } = await Notifications.getExpoPushTokenAsync();
+  console.log("Expo Push Token:", token); // Debugging
+  return token;
 };
-const index = () => {
-  const [notification, setNotification] = useState<Notifications.Notification | null>(null); // Explicitly type the state
-  const [notifications, setNotifications] = useState<Notifications.Notification[]>([]); // Array of notifications
 
-  // Request permission and retrieve push token
+const Index = () => {
+  const [notification, setNotification] = useState(null); // Current notification
+  const [notifications, setNotifications] = useState([]); // Array of all notifications
+  const navigation = useNavigation();
+
   useEffect(() => {
-    // Request notification permissions
+    // Request notification permissions and get push token
     requestNotificationPermissions();
 
-    // Add listener to handle incoming notifications
-    const notificationListener = Notifications.addNotificationReceivedListener((notification) => {
-      setNotification(notification); // Set the notification
-      setNotifications((prevNotifications) => [
-        ...prevNotifications,
-        notification,
-      ]);
-    });
+    // Handle incoming notifications
+    const notificationListener = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        setNotification(notification); // Store the latest notification
+        setNotifications((prevNotifications) => [
+          ...prevNotifications,
+          notification,
+        ]);
+      }
+    );
 
-    // Add listener to handle user response to notifications
-    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log("Notification response:", response);
-    });
+    // Handle user responses to notifications
+    const responseListener =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log("Notification response:", response);
+      });
 
-    // Cleanup listeners on component unmount
+    // Cleanup listeners on unmount
     return () => {
       notificationListener.remove();
       responseListener.remove();
     };
   }, []);
-  const navigation = useNavigation();
-
-  // Initial value for logo animation
-  // Run the animation only once when the component mounts
 
   return (
-    
     <View style={styles.container}>
       <Stack.Screen
         options={{
-
           title: "",
-          headerStyle: {backgroundColor: "black", },
+          headerStyle: { backgroundColor: "black" },
           headerTintColor: "#fff",
         }}
       />
@@ -101,12 +107,12 @@ const index = () => {
             <Text style={styles.buttonText}>SignUp</Text>
           </Pressable>
         </Link>
-        <View style={styles.bottomleft}>
-          <View style={[styles.circle, styles.blackCircleBottom]} />
-        </View>
+      </View>
+
+      <View style={styles.bottomLeft}>
+        <View style={[styles.circle, styles.blackCircleBottom]} />
       </View>
     </View>
-    
   );
 };
 
@@ -128,7 +134,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
   },
-  bottomleft: {
+  bottomLeft: {
     position: "absolute",
     bottom: 0,
     left: 0,
@@ -142,19 +148,15 @@ const styles = StyleSheet.create({
   },
   blackCircle: {
     backgroundColor: "black",
-    zIndex: 1, // Ensure it's on top
+    zIndex: 1,
     right: windowWidth * -0.1,
     top: windowHeight * -0.05,
   },
   blackCircleBottom: {
     backgroundColor: "black",
-    zIndex: 1, // Ensure it's on top
+    zIndex: 1,
     left: windowWidth * -0.3,
     bottom: windowHeight * -0.42,
-  },
-  header: {
-    alignItems: "center",
-    marginTop: windowHeight * -0.1,
   },
   logo: {
     width: windowWidth * 0.8,
@@ -195,4 +197,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default index;
+export default Index;

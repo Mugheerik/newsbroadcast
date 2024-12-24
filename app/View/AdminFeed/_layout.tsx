@@ -8,9 +8,6 @@ import { Drawer } from "expo-router/drawer";
 import CustomDrawerContent from "../AdminFeed/CustomDrawerContent";
 import { router, Href } from "expo-router";
 
-
-
- 
 export default function Layout() {
   return (
     <Drawer drawerContent={() => <CustomDrawerContent />}>
@@ -28,7 +25,13 @@ export default function Layout() {
           ),
 
           headerRight: () => (
-            <TouchableOpacity onPress={() => router.push('/View/AdminFeed/notifcationScreen' as Href<'/View/AdminFeed/notifcationScreen'>)} >
+            <TouchableOpacity
+              onPress={() =>
+                router.push(
+                  "/View/AdminFeed/notifcationScreen" as Href<"/View/AdminFeed/notifcationScreen">
+                )
+              }
+            >
               <Text style={{ paddingRight: 15 }}>
                 <Ionicons
                   name="notifications-outline"
@@ -41,9 +44,13 @@ export default function Layout() {
         }}
       />
 
-      <Drawer.Screen name="UserProfile" options={{ title: "Edit Profile"}} />
+      <Drawer.Screen name="UserProfile" options={{ title: "Edit Profile" }} />
       <Drawer.Screen name="ApprovedNews" options={{ title: "Approved News" }} />
       <Drawer.Screen name="rejectedNews" options={{ title: "Rejected News" }} />
+      <Drawer.Screen
+        name="userManagement"
+        options={{ title: "User Management" }}
+      />
     </Drawer>
   );
 }

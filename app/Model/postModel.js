@@ -8,18 +8,24 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
-import * as Notifications from "expo-notifications"; // Import Expo Notifications
+import * as Notifications from "expo-notifications";
 
-// Fetch unapproved posts
+// Fetch all unapproved posts across users
 export const fetchUnapprovedPosts = async () => {
   const unapprovedPosts = [];
   try {
     const querySnapshot = await getDocs(collection(db, "users"));
+
+    // Iterate through each user's document
     for (const userDoc of querySnapshot.docs) {
       const userUid = userDoc.id;
+
+      // Fetch posts for the user
       const postsSnapshot = await getDocs(
         collection(db, "users", userUid, "posts")
       );
+
+      // Filter unapproved and unrejected posts
       postsSnapshot.forEach((postDoc) => {
         const postData = postDoc.data();
         if (!postData.approved && !postData.rejected) {
@@ -29,78 +35,78 @@ export const fetchUnapprovedPosts = async () => {
     }
     return unapprovedPosts;
   } catch (error) {
-    console.error("Error fetching unapproved posts: ", error);
+    console.error("Error fetching unapproved posts:", error);
     return [];
   }
 };
 
 // Approve a post and notify the user
 export const approvePost = async (adminUid, postId, postData) => {
-  const { userUid, id, ...restPostData } = postData; // Destructure to exclude id
+  const { userUid, id, ...restPostData } = postData; // Exclude post ID from data
   const postRef = doc(db, "users", userUid, "posts", postId);
 
   try {
-    // Mark as approved in the user's collection
+    // Update the post as approved
     await updateDoc(postRef, { approved: true });
 
-    // Check if the category exists before adding the post
-    const categoryRef = doc(db, "posts", restPostData.category); // Reference to the category
+    // Reference the post's category
+    const categoryRef = doc(db, "posts", restPostData.category);
     const categoryDoc = await getDoc(categoryRef);
 
-    // If category doesn't exist, create it
+    // Create the category if it doesn't exist
     if (!categoryDoc.exists()) {
-      await setDoc(categoryRef, { created: true }); // Creating the category if it doesn't exist
+      await setDoc(categoryRef, { created: true });
     }
 
-    // Save the approved post under the correct category in the "posts" collection with the same post ID
+    // Add the approved post to the category's posts collection
     await setDoc(doc(db, "posts", restPostData.category, "posts", postId), {
       ...restPostData,
       approved: true,
     });
 
-    // Save the approved post to the admin's approvedPosts collection with the same post ID
+    // Add the approved post to the admin's approvedPosts collection
     await setDoc(doc(db, "admins", adminUid, "approvedPosts", postId), {
       ...restPostData,
       approved: true,
     });
 
-    // Notify the user about the approval
+    // Notify the user about approval
     await notifyUser(userUid, "Your post has been approved!");
 
-    console.log("Post approved and user notified");
+    console.log("Post approved and user notified successfully");
   } catch (error) {
-    console.error("Error approving post: ", error);
+    console.error("Error approving post:", error);
   }
 };
 
 // Reject a post and notify the user
 export const rejectPost = async (adminUid, postId, postData) => {
-  const { userUid, id, ...restPostData } = postData; // Destructure to exclude id
+  const { userUid, id, ...restPostData } = postData; // Exclude post ID from data
   const postRef = doc(db, "users", userUid, "posts", postId);
 
   try {
-    // Mark as rejected in the user's collection
-    await updateDoc(postRef, { rejected: true });
+    // Update the post as rejected and ensure it's not approved
+    await updateDoc(postRef, { rejected: true, approved: false });
 
-    // Save the rejected post to the admin's rejectedPosts collection with the same post ID
+    // Add the rejected post to the admin's rejectedPosts collection
     await setDoc(doc(db, "admins", adminUid, "rejectedPosts", postId), {
       ...restPostData,
       rejected: true,
+      approved: false,
     });
 
-    // Notify the user about the rejection
-    await notifyUser(userUid, "Your post has been rejected!");
+    // Notify the user about rejection
+    await notifyUser(userUid, "Your post has been rejected.");
 
-    console.log("Post rejected and user notified");
+    console.log("Post rejected and user notified successfully");
   } catch (error) {
-    console.error("Error rejecting post: ", error);
+    console.error("Error rejecting post:", error);
   }
 };
 
-// Function to notify the user
+// Notify a user via push notifications
 const notifyUser = async (userUid, message) => {
   try {
-    // Fetch the user document to get their push token
     const userDocRef = doc(db, "users", userUid);
     const userDoc = await getDoc(userDocRef);
     const userData = userDoc.data();
@@ -108,7 +114,6 @@ const notifyUser = async (userUid, message) => {
     if (userData && userData.expoPushToken) {
       const pushToken = userData.expoPushToken;
 
-      // Construct the message payload
       const notificationMessage = {
         to: pushToken,
         sound: "default",
@@ -117,17 +122,17 @@ const notifyUser = async (userUid, message) => {
         data: { userId: userUid },
       };
 
-      // Send push notification
+      // Send the notification
       await Notifications.scheduleNotificationAsync({
         content: notificationMessage,
-        trigger: null, // Trigger immediately
+        trigger: null, // Immediate notification
       });
 
-      console.log("Notification sent to user");
+      console.log("Notification sent to user successfully");
     } else {
       console.log("User does not have a push token");
     }
   } catch (error) {
-    console.error("Error notifying user: ", error);
+    console.error("Error sending notification to user:", error);
   }
 };

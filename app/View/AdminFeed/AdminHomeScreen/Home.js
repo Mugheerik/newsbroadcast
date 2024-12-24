@@ -96,7 +96,7 @@ const Myposts = () => {
         : item.description;
 
     return (
-      <Link href={`/posts/${item.id}`} asChild>
+      <Link href={`/users/${item.userId}/posts/${item.id}`} asChild>
         <TouchableOpacity>
           <View style={styles.card}>
             <View style={styles.cardContent}>
@@ -113,6 +113,7 @@ const Myposts = () => {
                     />
                   )}
                   <Text style={styles.userName}>{item.userName}</Text>
+                  
                 </View>
 
                 {/* Promotional Title */}

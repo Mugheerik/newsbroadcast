@@ -23,12 +23,53 @@ const SignupForm = () => {
     setLocation,
     password,
     setPassword,
+    cnic,
+    setCnic,
     handleSignUp,
   } = useSignupViewModel();
 
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateInputs = () => {
+    const errors = {};
+    const nameRegex = /^[A-Za-z\s]+$/;
+    const emailRegex =
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|net|edu|gov|mil|int)$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*[0-9])(?=.{8,})/;
+    const cnicRegex = /^\d{13}$/;
+
+    if (!name || !nameRegex.test(name)) {
+      errors.name =
+        "Full Name should not contain numbers or special characters.";
+    }
+    if (!email || !emailRegex.test(email)) {
+      errors.email = "Enter a valid email address.";
+    }
+    if (!password || !passwordRegex.test(password)) {
+      errors.password =
+        "Password must be at least 8 characters, include one uppercase letter, one number, and one special character.";
+    }
+    if (!cnic || !cnicRegex.test(cnic)) {
+      errors.cnic = "CNIC must be 13 digits without dashes.";
+    }
+    setErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSignUpPress = async () => {
+    if (!validateInputs()) return;
+
+    setLoading(true);
+    try {
+      await handleSignUp();
+    } catch (error) {
+      console.error("Signup failed:", error);
+    }
+    setLoading(false);
+  };
 
   const handleLocationInput = (text) => {
     setLocation(text);
@@ -41,16 +82,6 @@ const SignupForm = () => {
     } else {
       setShowDropdown(false);
     }
-  };
-
-  const handleSignUpPress = async () => {
-    setLoading(true);
-    try {
-      await handleSignUp();
-    } catch (error) {
-      console.error("Signup failed:", error);
-    }
-    setLoading(false);
   };
 
   return (
@@ -68,6 +99,7 @@ const SignupForm = () => {
             style={styles.input}
           />
         </View>
+        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
         <View style={styles.inputWrapper}>
           <MaterialIcons name="location-on" size={24} style={styles.icon} />
           <TextInput
@@ -105,6 +137,7 @@ const SignupForm = () => {
             keyboardType="email-address"
           />
         </View>
+        {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
         <View style={styles.inputWrapper}>
           <FontAwesome name="lock" size={24} style={styles.icon} />
           <TextInput
@@ -115,8 +148,26 @@ const SignupForm = () => {
             secureTextEntry
           />
         </View>
+        {errors.password && (
+          <Text style={styles.errorText}>{errors.password}</Text>
+        )}
+        <View style={styles.inputWrapper}>
+          <MaterialIcons name="badge" size={24} style={styles.icon} />
+          <TextInput
+            placeholder="CNIC (13 digits without dashes)"
+            value={cnic}
+            onChangeText={setCnic}
+            style={styles.input}
+            keyboardType="numeric"
+          />
+        </View>
+        {errors.cnic && <Text style={styles.errorText}>{errors.cnic}</Text>}
         {loading ? (
-          <ActivityIndicator size="large" color="black" style={styles.loading} />
+          <ActivityIndicator
+            size="large"
+            color="black"
+            style={styles.loading}
+          />
         ) : (
           <Button
             mode="contained"
@@ -136,7 +187,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-  
   },
   header: {
     alignItems: "center",
@@ -191,6 +241,12 @@ const styles = StyleSheet.create({
   },
   loading: {
     marginVertical: 20,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 12,
+    marginBottom: 5,
+    marginLeft: 5,
   },
 });
 

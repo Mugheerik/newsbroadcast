@@ -60,6 +60,7 @@ const LoginForm = () => {
       // Set error message if sign-in fails
       setError("Incorrect email or password. Please try again.");
       console.error("Sign-in failed", error);
+     
     }
 
     setLoading(false); // Set loading to false after sign-in completes

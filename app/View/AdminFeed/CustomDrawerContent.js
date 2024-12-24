@@ -22,7 +22,7 @@ export default function CustomDrawerContent() {
     <View style={styles.drawerContainer}>
       {/* Dynamic User Info Section */}
       <View style={styles.userInfoContainer}>
-        <View >
+        <View>
           <Image
             source={{ uri: userData?.profilePicture }}
             style={styles.profileImage}
@@ -47,10 +47,18 @@ export default function CustomDrawerContent() {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.drawerItem}
+        onPress={() => router.push("/View/AdminFeed/userManagement")}
+      >
+        <Text>User Management</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.drawerItem}
         onPress={() => router.push("/View/AdminFeed/ApprovedPosts")}
       >
         <Text>Approved Posts</Text>
       </TouchableOpacity>
+
       <TouchableOpacity
         style={styles.drawerItem}
         onPress={() => router.push("/View/AdminFeed/rejectedposts")}

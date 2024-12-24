@@ -16,6 +16,8 @@ const NotificationScreen = () => {
           body: notification.request.content.body,
           receivedAt: new Date(),
         };
+
+        // Add new notification to the list
         setNotifications((prevNotifications) => [
           newNotification,
           ...prevNotifications,
@@ -23,24 +25,27 @@ const NotificationScreen = () => {
       }
     );
 
+    // Cleanup listener on unmount
     return () => {
-      // Cleanup listener when the component is unmounted
       subscription.remove();
     };
   }, []);
 
-  // Render each notification
+  // Render each notification item
   const renderNotification = ({ item }) => (
     <View style={styles.notificationItem}>
       <Text style={styles.title}>{item.title}</Text>
       <Text style={styles.body}>{item.body}</Text>
-      <Text style={styles.timestamp}>{item.receivedAt.toLocaleString()}</Text>
+      <Text style={styles.timestamp}>
+        {item.receivedAt.toLocaleString()}
+      </Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Notifications</Text>
+      {/* FlatList to display the notifications */}
       <FlatList
         data={notifications}
         renderItem={renderNotification}
