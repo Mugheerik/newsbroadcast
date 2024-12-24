@@ -1,58 +1,42 @@
-import { useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth"; // Updated import
-import { useRouter } from "expo-router";
-import { getUserData } from "../Model/getUserModel";
-import { SignOut } from "../Model/signinModel";
+import { useState } from "react";
+import { getFirestore, doc, onSnapshot } from "firebase/firestore";
+import { getAuth, signOut } from "firebase/auth";
+import { useRouter } from "expo-router"; // Ensure you have the router for navigation
 
 export const useDrawerViewModel = () => {
   const [userdata, setUserdata] = useState({});
-  const [loading, setLoading] = useState(true); // Optionally handle loading state
   const auth = getAuth();
-  const router = useRouter();
+  const firestore = getFirestore();
+  const router = useRouter(); // Initialize router for navigation
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userData = await getUserData(user.uid);
-          setUserdata(userData);
-        } catch (error) {
-          console.error("Error fetching user data: ", error);
-        }
-      } else {
-        setUserdata({}); // Clear userdata if user is not logged in
+  const subscribeToUserData = () => {
+    const user = auth.currentUser;
+    if (!user) return () => {};
+
+    const userDocRef = doc(firestore, "users", user.uid);
+
+    // Real-time listener
+    const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setUserdata(snapshot.data());
       }
-      setLoading(false); // Update loading state after data fetching
     });
 
-    return () => unsubscribe(); // Clean up subscription on unmount
-  }, [auth]);
+    return unsubscribe;
+  };
 
   const handleLogout = async () => {
     try {
-      await SignOut(auth);
-      router.replace("/View/Signin")
+      await signOut(auth); // Correct method to sign out
+      router.replace("/View/Signin");
     } catch (error) {
       console.error("Error signing out: ", error);
-    }
-  };
-
-  const updateUserProfile = async (displayName, photoURL) => {
-    try {
-      const user = auth.currentUser;
-      if (user) {
-        await user.updateProfile({ displayName, photoURL });
-        // Optionally, update Firestore or other data sources here
-      }
-    } catch (error) {
-      console.error("Error updating profile: ", error);
     }
   };
 
   return {
     userdata,
     handleLogout,
-    updateUserProfile,
-    loading, // Optionally return loading state
+    subscribeToUserData,
   };
 };

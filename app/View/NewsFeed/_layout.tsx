@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 // app/_layout.js
 import { Drawer } from "expo-router/drawer";
 import CustomDrawerContent from "../NewsFeed/CustomDrawerContent";
+import { router, Href } from "expo-router";
 
 export default function Layout() {
   return (
@@ -24,7 +25,13 @@ export default function Layout() {
           ),
 
           headerRight: () => (
-            <TouchableOpacity onPress={() => alert("Notification pressed")}>
+            <TouchableOpacity
+              onPress={() =>
+                router.push(
+                  "/View/NewsFeed/notifcationScreen" as Href<"/View/NewsFeed/notifcationScreen">
+                )
+              }
+            >
               <Text style={{ paddingRight: 15 }}>
                 <Ionicons
                   name="notifications-outline"
@@ -38,7 +45,15 @@ export default function Layout() {
       />
 
       <Drawer.Screen name="UserProfile" options={{ title: "Edit Profile" }} />
-     
+      <Drawer.Screen
+        name="changePassword"
+        options={{ title: "Change Password" }}
+      />
+      <Drawer.Screen name="favorites" options={{ title: "Favorites" }} />
+      <Drawer.Screen
+        name="changeLocation"
+        options={{ title: "Change Location" }}
+      />
     </Drawer>
   );
 }

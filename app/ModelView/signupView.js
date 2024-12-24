@@ -7,15 +7,23 @@ import { router } from "expo-router";
 export const useSignupViewModel = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [cnic, setCnic] = useState("");
   const [location, setLocation] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("User");
+  const [status, setStatus] = useState("user");
   const profilePicture = null;
   const handleSignUp = async () => {
     try {
       const { user } = await signUp(email, password);
-      await saveUserData(user.uid, { name, email, location,status,profilePicture });
-      router.replace("/View/NewsFeed/HomeScreen/Home");
+      await saveUserData(user.uid, {
+        name,
+        email,
+        location,
+        cnic,
+        status,
+        profilePicture,
+      });
+      router.replace("/View/NewsFeed/HomeScreen/UserHome");
       console.log("User account created & additional data stored!");
     } catch (error) {
       console.error("Error signing up:", error);
@@ -29,7 +37,10 @@ export const useSignupViewModel = () => {
     setEmail,
     location,
     setLocation,
+    cnic,
+    setCnic,
     password,
+    setStatus,
     setPassword,
     handleSignUp,
   };

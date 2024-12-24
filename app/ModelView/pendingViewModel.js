@@ -1,6 +1,10 @@
 // PostViewModel.js
 import { useState, useEffect } from "react";
-import { fetchUnapprovedPosts, approvePost, rejectPost } from "../Model/postModel.js";
+import {
+  fetchUnapprovedPosts,
+  approvePost,
+  rejectPost,
+} from "../Model/postModel.js";
 import { getAuth } from "firebase/auth";
 
 export const usePostsViewModel = () => {

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Button } from "react-native";
 import { Tabs } from "expo-router";
 import { AntDesign } from "@expo/vector-icons";
-import Modal from "./createpost";
+import Modal from "./createNews";
 
 export default function TabLayout() {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -27,7 +27,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="createpost"
+        name="createNews"
         options={{
           headerShown: false,
           tabBarIcon: ({}) => (
@@ -38,6 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="Pending"
         options={{
+          headerShown: false,
           tabBarIcon: ({}) => (
             <AntDesign size={28} name="user" color={"black"} />
           ),

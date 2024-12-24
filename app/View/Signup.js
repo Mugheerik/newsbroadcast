@@ -1,8 +1,17 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { Button } from "react-native-paper";
-import { MaterialIcons, FontAwesome } from "@expo/vector-icons"; // Importing icons
+import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import { useSignupViewModel } from "../ModelView/signupView";
+import locationData from "../../assets/locations.json";
 
 const SignupForm = () => {
   const {
@@ -14,50 +23,65 @@ const SignupForm = () => {
     setLocation,
     password,
     setPassword,
+    cnic,
+    setCnic,
     handleSignUp,
   } = useSignupViewModel();
 
-  const [loading, setLoading] = useState(false); // State for loading
-  const [googleButtonStyle, setGoogleButtonStyle] = useState({
-    backgroundColor: "white",
-    borderColor: "black",
-    textColor: "black",
-  });
+  const [filteredLocations, setFilteredLocations] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  const Separator = ({ text }) => (
-    <View style={styles.separatorContainer}>
-      <View style={styles.separatorLine} />
-      <Text style={styles.separatorText}>{text}</Text>
-      <View style={styles.separatorLine} />
-    </View>
-  );
+  const validateInputs = () => {
+    const errors = {};
+    const nameRegex = /^[A-Za-z\s]+$/;
+    const emailRegex =
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|net|edu|gov|mil|int)$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*[0-9])(?=.{8,})/;
+    const cnicRegex = /^\d{13}$/;
 
-  const handleGoogleButtonPressIn = () => {
-    setGoogleButtonStyle({
-      backgroundColor: "black",
-      borderColor: "white",
-      textColor: "white",
-    });
-  };
-
-  const handleGoogleButtonPressOut = () => {
-    setGoogleButtonStyle({
-      backgroundColor: "white",
-      borderColor: "black",
-      textColor: "black",
-    });
+    if (!name || !nameRegex.test(name)) {
+      errors.name =
+        "Full Name should not contain numbers or special characters.";
+    }
+    if (!email || !emailRegex.test(email)) {
+      errors.email = "Enter a valid email address.";
+    }
+    if (!password || !passwordRegex.test(password)) {
+      errors.password =
+        "Password must be at least 8 characters, include one uppercase letter, one number, and one special character.";
+    }
+    if (!cnic || !cnicRegex.test(cnic)) {
+      errors.cnic = "CNIC must be 13 digits without dashes.";
+    }
+    setErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSignUpPress = async () => {
-    setLoading(true); // Set loading to true when starting signup
+    if (!validateInputs()) return;
 
+    setLoading(true);
     try {
       await handleSignUp();
     } catch (error) {
-      console.error("Signup failed", error);
+      console.error("Signup failed:", error);
     }
+    setLoading(false);
+  };
 
-    setLoading(false); // Set loading to false after signup completes
+  const handleLocationInput = (text) => {
+    setLocation(text);
+    if (text.trim() !== "") {
+      const results = locationData.filter((item) =>
+        item.Name.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredLocations(results);
+      setShowDropdown(results.length > 0);
+    } else {
+      setShowDropdown(false);
+    }
   };
 
   return (
@@ -67,69 +91,83 @@ const SignupForm = () => {
       </View>
       <View style={styles.formContainer}>
         <View style={styles.inputWrapper}>
-          <MaterialIcons
-            name="account-circle"
-            size={24}
-            color="black"
-            style={styles.icon}
-          />
+          <MaterialIcons name="account-circle" size={24} style={styles.icon} />
           <TextInput
             placeholder="Full Name"
             value={name}
-            onChangeText={(text) => setName(text)}
+            onChangeText={setName}
             style={styles.input}
           />
         </View>
-
+        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
         <View style={styles.inputWrapper}>
-          <MaterialIcons
-            name="location-on"
-            size={24}
-            color="black"
-            style={styles.icon}
-          />
+          <MaterialIcons name="location-on" size={24} style={styles.icon} />
           <TextInput
-            placeholder="Location"
+            placeholder="Enter Location"
             value={location}
-            onChangeText={(text) => setLocation(text)}
+            onChangeText={handleLocationInput}
             style={styles.input}
           />
+          {showDropdown && (
+            <FlatList
+              data={filteredLocations}
+              keyExtractor={(item, index) => index.toString()}
+              style={styles.dropdown}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setLocation(item.Name);
+                    setShowDropdown(false);
+                  }}
+                >
+                  <Text style={styles.dropdownText}>{item.Name}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
         </View>
-
         <View style={styles.inputWrapper}>
-          <MaterialIcons
-            name="email"
-            size={24}
-            color="black"
-            style={styles.icon}
-          />
+          <MaterialIcons name="email" size={24} style={styles.icon} />
           <TextInput
             placeholder="Email"
             value={email}
-            onChangeText={(text) => setEmail(text)}
+            onChangeText={setEmail}
             style={styles.input}
             keyboardType="email-address"
           />
         </View>
-
+        {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
         <View style={styles.inputWrapper}>
-          <FontAwesome
-            name="lock"
-            size={24}
-            color="black"
-            style={styles.icon}
-          />
+          <FontAwesome name="lock" size={24} style={styles.icon} />
           <TextInput
             placeholder="Password"
             value={password}
-            onChangeText={(text) => setPassword(text)}
+            onChangeText={setPassword}
             style={styles.input}
             secureTextEntry
           />
         </View>
-
+        {errors.password && (
+          <Text style={styles.errorText}>{errors.password}</Text>
+        )}
+        <View style={styles.inputWrapper}>
+          <MaterialIcons name="badge" size={24} style={styles.icon} />
+          <TextInput
+            placeholder="CNIC (13 digits without dashes)"
+            value={cnic}
+            onChangeText={setCnic}
+            style={styles.input}
+            keyboardType="numeric"
+          />
+        </View>
+        {errors.cnic && <Text style={styles.errorText}>{errors.cnic}</Text>}
         {loading ? (
-          <ActivityIndicator size="large" color="#000000" style={styles.loading} />
+          <ActivityIndicator
+            size="large"
+            color="black"
+            style={styles.loading}
+          />
         ) : (
           <Button
             mode="contained"
@@ -141,24 +179,6 @@ const SignupForm = () => {
           </Button>
         )}
       </View>
-      <Separator text="OR" />
-
-      <Button
-        mode="outlined"
-        onPress={() => console.log("Google Sign Up pressed")}
-        onPressIn={handleGoogleButtonPressIn}
-        onPressOut={handleGoogleButtonPressOut}
-        style={[
-          styles.button,
-          {
-            backgroundColor: googleButtonStyle.backgroundColor,
-            borderColor: googleButtonStyle.borderColor,
-          },
-        ]}
-        labelStyle={{ color: googleButtonStyle.textColor }}
-      >
-        Sign in with Google
-      </Button>
     </View>
   );
 };
@@ -170,11 +190,11 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    padding: 20,
+    marginVertical: 20,
     marginTop: 50,
   },
   headerText: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "bold",
     color: "black",
   },
@@ -185,40 +205,48 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 10,
-    borderColor: "#000000",
     borderWidth: 1,
+    borderColor: "#ccc",
     borderRadius: 5,
     paddingHorizontal: 10,
   },
   icon: {
-    paddingRight: 10,
-  },
-  separatorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 10,
-  },
-  separatorLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "black",
-  },
-  separatorText: {
-    marginHorizontal: 10,
+    marginRight: 10,
     color: "black",
-    fontWeight: "bold",
   },
   input: {
     flex: 1,
     height: 40,
+  },
+  dropdown: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    maxHeight: 150,
+    marginTop: 5,
+  },
+  dropdownItem: {
+    padding: 10,
+    borderBottomColor: "#ddd",
+    borderBottomWidth: 1,
+  },
+  dropdownText: {
     fontSize: 16,
+    color: "black",
   },
   button: {
+    backgroundColor: "black",
     marginVertical: 20,
-    backgroundColor: "#000000",
   },
   loading: {
     marginVertical: 20,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 12,
+    marginBottom: 5,
+    marginLeft: 5,
   },
 });
 

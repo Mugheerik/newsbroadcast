@@ -1,8 +1,18 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, ActivityIndicator, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  TouchableOpacity,
+} from "react-native";
 import { Button } from "react-native-paper";
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"; // Importing icons
 import { useSignInViewModel } from "../ModelView/signinView";
+import PasswordResetScreen from "../View/NewsFeed/changePassword";
 
 const Separator = ({ text }) => (
   <View style={styles.separatorContainer}>
@@ -13,7 +23,8 @@ const Separator = ({ text }) => (
 );
 
 const LoginForm = () => {
-  const { email, setEmail, password, setPassword, handleSignIn } = useSignInViewModel();
+  const { email, setEmail, password, setPassword, handleSignIn } =
+    useSignInViewModel();
   const [loading, setLoading] = useState(false); // State for loading
   const [error, setError] = useState(""); // State for error message
   const [googleButtonStyle, setGoogleButtonStyle] = useState({
@@ -21,6 +32,7 @@ const LoginForm = () => {
     borderColor: "black",
     textColor: "black",
   });
+  const [modalVisible, setModalVisible] = useState(false); // State to control modal visibility
 
   const handleGoogleButtonPressIn = () => {
     setGoogleButtonStyle({
@@ -48,6 +60,7 @@ const LoginForm = () => {
       // Set error message if sign-in fails
       setError("Incorrect email or password. Please try again.");
       console.error("Sign-in failed", error);
+     
     }
 
     setLoading(false); // Set loading to false after sign-in completes
@@ -76,7 +89,12 @@ const LoginForm = () => {
         </View>
 
         <View style={styles.inputWrapper}>
-          <FontAwesome name="lock" size={24} color="black" style={styles.icon} />
+          <FontAwesome
+            name="lock"
+            size={24}
+            color="black"
+            style={styles.icon}
+          />
           <TextInput
             placeholder="Password"
             value={password}
@@ -86,12 +104,14 @@ const LoginForm = () => {
           />
         </View>
 
-        {error ? (
-          Alert.alert(error)
-        ) : null}
+        {error ? Alert.alert(error) : null}
 
         {loading ? (
-          <ActivityIndicator size="large" color="#000000" style={styles.loading} />
+          <ActivityIndicator
+            size="large"
+            color="#000000"
+            style={styles.loading}
+          />
         ) : (
           <Button
             mode="contained"
@@ -121,7 +141,24 @@ const LoginForm = () => {
         >
           Sign in with Google
         </Button>
+
+        {/* Forgot password link */}
+        <TouchableOpacity onPress={() => setModalVisible(true)}>
+          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Modal for Password Reset Screen */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <PasswordResetScreen closeModal={() => setModalVisible(false)} />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -188,6 +225,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     color: "black",
     fontWeight: "bold",
+  },
+  forgotPasswordText: {
+    marginTop: 10,
+    color: "blue",
+    textAlign: "center",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
 });
 

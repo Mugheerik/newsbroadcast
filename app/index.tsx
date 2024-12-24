@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import 'react-native-gesture-handler';
-import 'react-native-reanimated';
+import "react-native-gesture-handler";
+import "react-native-reanimated";
 
 import {
   View,
@@ -9,26 +9,77 @@ import {
   StyleSheet,
   Image,
   Dimensions,
-  Animated,
   Pressable,
+  Alert,
 } from "react-native";
 import newwImage from "../assets/images/neww.png";
 
+import * as Notifications from "expo-notifications";
 import { Link, useNavigation, Stack } from "expo-router";
-const index = () => {
+
+// Configure notification behavior
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+// Request notification permissions
+const requestNotificationPermissions = async () => {
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== "granted") {
+    Alert.alert("Permission not granted for notifications");
+  }
+};
+
+// Retrieve the Expo Push Token
+const getPushToken = async () => {
+  const { data: token } = await Notifications.getExpoPushTokenAsync();
+  console.log("Expo Push Token:", token); // Debugging
+  return token;
+};
+
+const Index = () => {
+  const [notification, setNotification] = useState(null); // Current notification
+  const [notifications, setNotifications] = useState([]); // Array of all notifications
   const navigation = useNavigation();
 
-  // Initial value for logo animation
-  // Run the animation only once when the component mounts
+  useEffect(() => {
+    // Request notification permissions and get push token
+    requestNotificationPermissions();
+
+    // Handle incoming notifications
+    const notificationListener = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        setNotification(notification); // Store the latest notification
+        setNotifications((prevNotifications) => [
+          ...prevNotifications,
+          notification,
+        ]);
+      }
+    );
+
+    // Handle user responses to notifications
+    const responseListener =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log("Notification response:", response);
+      });
+
+    // Cleanup listeners on unmount
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, []);
 
   return (
-    
     <View style={styles.container}>
       <Stack.Screen
         options={{
-
           title: "",
-          headerStyle: {backgroundColor: "black", },
+          headerStyle: { backgroundColor: "black" },
           headerTintColor: "#fff",
         }}
       />
@@ -56,12 +107,12 @@ const index = () => {
             <Text style={styles.buttonText}>SignUp</Text>
           </Pressable>
         </Link>
-        <View style={styles.bottomleft}>
-          <View style={[styles.circle, styles.blackCircleBottom]} />
-        </View>
+      </View>
+
+      <View style={styles.bottomLeft}>
+        <View style={[styles.circle, styles.blackCircleBottom]} />
       </View>
     </View>
-    
   );
 };
 
@@ -83,7 +134,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
   },
-  bottomleft: {
+  bottomLeft: {
     position: "absolute",
     bottom: 0,
     left: 0,
@@ -97,19 +148,15 @@ const styles = StyleSheet.create({
   },
   blackCircle: {
     backgroundColor: "black",
-    zIndex: 1, // Ensure it's on top
+    zIndex: 1,
     right: windowWidth * -0.1,
     top: windowHeight * -0.05,
   },
   blackCircleBottom: {
     backgroundColor: "black",
-    zIndex: 1, // Ensure it's on top
+    zIndex: 1,
     left: windowWidth * -0.3,
     bottom: windowHeight * -0.42,
-  },
-  header: {
-    alignItems: "center",
-    marginTop: windowHeight * -0.1,
   },
   logo: {
     width: windowWidth * 0.8,
@@ -150,4 +197,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default index;
+export default Index;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,17 @@ import {
   Dimensions,
   ActivityIndicator,
   Image,
+  Alert,
 } from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
 import usePostViewModel from "../../../ModelView/postViewModel";
 import * as ImagePicker from "expo-image-picker";
 import { Video } from "expo-av";
+import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firebase Firestore imports
+import { getAuth } from "firebase/auth"; // Firebase Auth import
+
+const db = getFirestore();
+const auth = getAuth();
 
 const PostPage = () => {
   const {
@@ -24,10 +31,48 @@ const PostPage = () => {
     setFile,
     mediaType,
     setMediaType,
+    category,
+    setCategory,
+    setLocation,
     handleCreatePost,
   } = usePostViewModel();
 
-  const [loading, setLoading] = useState(false); // State for loading indicator
+  const [loading, setLoading] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(false);
+  const [isCustomInput, setIsCustomInput] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
+  const [categories, setCategories] = useState([
+    { label: "Sports", value: "sports" },
+    { label: "Tech", value: "tech" },
+    { label: "Entertainment", value: "entertainment" },
+    { label: "Crime", value: "crime" },
+    { label: "Politics", value: "politics" },
+  ]);
+ 
+
+  // Function to get current user data (location)
+  const fetchUserLocation = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid); // Get user's document
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setLocation(userDoc.data().location); // Assuming location is stored in 'location' field
+        } else {
+          console.log("User document not found!");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      Alert.alert("Error", "Couldn't fetch user location.");
+    }
+  };
+
+  // Fetch user location when component mounts
+  useEffect(() => {
+    fetchUserLocation();
+  }, []);
 
   const pickFile = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -44,40 +89,33 @@ const PostPage = () => {
       aspect: [4, 3],
       quality: 1,
     });
-  
+
     if (!result.canceled) {
       const selectedFile = result.assets[0];
       const fileName = selectedFile.uri.split("/").pop();
-      console.log("Selected media type:", selectedFile.type); // Log media type
-      console.log("Selected file URI:", selectedFile.uri); // Log file URI
       setFile({ ...selectedFile, name: fileName });
       setMediaType(selectedFile.type);
     }
   };
 
   const handlePostCreation = async () => {
-    if (file) {
-      setLoading(true); // Set loading to true while creating post
+    const Category = isCustomInput ? customCategory : category;
+
+    if (file && Category ) {
+      setLoading(true);
       try {
-        await handleCreatePost(title, description, file, mediaType);
-        onClose(); // Close the page after post creation
+        // Include user location when creating post
+        await handleCreatePost(title, description, file, mediaType, Category);
+        onClose();
       } catch (error) {
         console.error("Error creating post:", error);
-        alert("Error creating post, please try again."); // Notify the user
+        alert("Error creating post, please try again.");
       } finally {
         setLoading(false);
       }
     } else {
-      alert("Please select a file.");
+      alert("Please complete all fields before posting.");
     }
-  };
-
-  const handleCancelAndClear = () => {
-    setTitle("");
-    setDescription("");
-    setFile(null);
-    setMediaType(null);
-    onClose(); // Close the page
   };
 
   const onClose = () => {
@@ -85,7 +123,8 @@ const PostPage = () => {
     setDescription("");
     setFile(null);
     setMediaType(null);
-    // Logic to close or navigate away from the PostPage can be added here
+    setCategory("");
+    alert("Post created successfully.");
   };
 
   return (
@@ -97,6 +136,19 @@ const PostPage = () => {
         value={title}
         onChangeText={setTitle}
       />
+
+      <DropDownPicker
+        open={openDropdown}
+        value={category}
+        items={categories}
+        setOpen={setOpenDropdown}
+        setValue={setCategory}
+        placeholder="Select a category"
+        containerStyle={{ width: "100%", marginVertical: 10 }}
+        style={styles.dropdown}
+        dropDownStyle={styles.dropdownList}
+      />
+
       <TextInput
         style={styles.input}
         placeholder="Description"
@@ -105,6 +157,7 @@ const PostPage = () => {
         multiline
         numberOfLines={3}
       />
+
       <TouchableOpacity style={styles.button} onPress={pickFile}>
         <Text style={styles.buttonText}>Pick an Image or Video</Text>
       </TouchableOpacity>
@@ -112,24 +165,22 @@ const PostPage = () => {
       {file && (
         <View style={styles.mediaPreview}>
           {mediaType ? (
-            <>
-              {mediaType === "image" ? (
-                <Image source={{ uri: file.uri }} style={styles.previewImage} />
-              ) : mediaType === "video" ? (
-                <Video
-                  source={{ uri: file.uri }}
-                  style={styles.previewVideo}
-                  useNativeControls
-                  resizeMode="contain"
-                  onError={(error) => {
-                    console.error("Video Error:", error);
-                    alert("Error loading video: " + error.message);
-                  }}
-                />
-              ) : (
-                <Text>Unsupported media type</Text>
-              )}
-            </>
+            mediaType === "image" ? (
+              <Image source={{ uri: file.uri }} style={styles.previewImage} />
+            ) : mediaType === "video" ? (
+              <Video
+                source={{ uri: file.uri }}
+                style={styles.previewVideo}
+                useNativeControls
+                resizeMode="contain"
+                onError={(error) => {
+                  console.error("Video Error:", error);
+                  alert("Error loading video: " + error.message);
+                }}
+              />
+            ) : (
+              <Text>Unsupported media type</Text>
+            )
           ) : (
             <Text>No media type detected</Text>
           )}
@@ -144,13 +195,8 @@ const PostPage = () => {
         />
       ) : (
         <View style={styles.buttonContainer}>
-          <Button
-            title="Cancel"
-            onPress={handleCancelAndClear}
-            color="#dc3545"
-          />
+          <Button title="Cancel" onPress={onClose} color="#dc3545" />
           <Button title="Post" onPress={handlePostCreation} color="#28a745" />
-          
         </View>
       )}
     </View>
@@ -180,6 +226,23 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     width: "100%",
     backgroundColor: "#fff",
+  },
+  dropdown: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    maxHeight: 150,
+    marginTop: 5,
+  },
+  dropdownItem: {
+    padding: 10,
+    borderBottomColor: "#ddd",
+    borderBottomWidth: 1,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: "black",
   },
   button: {
     backgroundColor: "black",

@@ -10,91 +10,151 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import axios from "axios";
+import * as Notifications from "expo-notifications";
 
 const storage = getStorage(app);
-const FLASK_API_URL = "https://150e-34-125-127-76.ngrok-free.app";
+const FLASK_API_URL = "https://9c33-34-168-16-201.ngrok-free.app";
 
-export async function createPost(title, description, file, mediaType) {
+// Request notification permissions
+const requestNotificationPermissions = async () => {
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== "granted") {
+    alert("Permission not granted for notifications");
+    throw new Error("Notifications permission not granted");
+  }
+};
+
+// Function to get or request push token
+const getOrRequestPushToken = async (userDocRef) => {
+  const pushToken = await Notifications.getExpoPushTokenAsync();
+  await setDoc(userDocRef, { expoPushToken: pushToken.data }, { merge: true });
+  return pushToken.data;
+};
+
+// Function to notify admin
+const notifyAdmin = async (userData) => {
+  try {
+    const adminUserDocRef = doc(db, "users", "lbnu681ScmXkcp9zG0vrCg8YLUz1"); // Replace with the actual admin UID
+    const adminUserDoc = await getDoc(adminUserDocRef);
+    const adminData = adminUserDoc.data();
+
+    if (adminData && adminData.expoPushToken) {
+      const message = {
+        to: adminData.expoPushToken,
+        sound: "default",
+        title: "New Post Created",
+        body: `${userData.name} has created a new post in the ${userData.category} category.`,
+        data: { userId: userData.uid },
+      };
+
+      await Notifications.scheduleNotificationAsync({
+        content: message,
+        trigger: null, // Trigger immediately
+      });
+
+      console.log("Notification sent to admin");
+    } else {
+      console.log("Admin does not have a push token");
+    }
+  } catch (error) {
+    console.error("Error notifying admin:", error);
+  }
+};
+
+// Main function to create a post
+export async function createPost(
+  title,
+  description,
+  file,
+  mediaType,
+  category,
+  location
+) {
   try {
     const auth = getAuth();
     const user = auth.currentUser;
 
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-
-    if (!storage) {
-      throw new Error("Storage is not initialized");
-    }
-
-    if (!file || !file.uri || !file.name) {
-      console.error("Invalid file object:", file);
-      throw new Error("Invalid file object");
-    }
-
-    const storageRef = ref(storage, `posts/${user.uid}/${file.name}`);
-    const response = await fetch(file.uri);
-    const blob = await response.blob();
-
-    const snapshot = await uploadBytes(storageRef, blob);
-    const mediaUrl = await getDownloadURL(snapshot.ref);
+    if (!user) throw new Error("User not authenticated");
+    if (!file || !file.uri || !file.name) throw new Error("Invalid file object");
+    if (!category || typeof category !== "string") throw new Error("Invalid category");
 
     const userDocRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userDocRef);
     const userData = userDoc.data();
 
-    // Check if userData exists and isAdmin is defined properly
-    const isAdmin =
-      userData && userData.status && userData.status.includes("Admin");
+    const isAdmin = userData?.status?.includes("Admin");
 
-    // Check if the collection path is valid
-    const collectionPath = isAdmin ? "posts" : `users/${user.uid}/posts`;
-    if (!collectionPath) {
-      throw new Error("Invalid collection path");
-    }
+    // Upload media
+    const storageRef = ref(storage, `posts/${user.uid}/${file.name}`);
+    const response = await fetch(file.uri);
+    const blob = await response.blob();
+    const snapshot = await uploadBytes(storageRef, blob);
+    const mediaUrl = await getDownloadURL(snapshot.ref);
 
+    // Prepare post data
     const postData = {
       title,
       description,
       mediaUrl,
       mediaType,
       userId: user.uid,
+      userName: userData?.name,
       likes: [],
       createdAt: serverTimestamp(),
-      approved: isAdmin,
+      approved: isAdmin || false,
+      category,
+      location,
+      promotional: isAdmin || false,
     };
 
-    const postRef = doc(collection(db, collectionPath));
+    // Store the post in Firestore
+    const categoryPath = isAdmin
+      ? `posts/${category}/posts`
+      : `users/${user.uid}/posts`;
+    const postRef = doc(collection(db, categoryPath));
     await setDoc(postRef, postData);
-    console.log("Post created"); // Upload the post without the summary
+    console.log("Post created");
 
+    if (isAdmin) {
+      const adminPostRef = doc(collection(db, `users/${user.uid}/posts`));
+      await setDoc(adminPostRef, postData);
+      console.log("Admin post stored");
+    }
+
+    // Process video if applicable
     if (mediaType === "video") {
-      // Step 1: Initiate request to the Flask app
-      const response = await axios.post(`${FLASK_API_URL}/summarize`, {
-        video_url: mediaUrl, // Pass the video URI or URL
+      const flaskResponse = await axios.post(`${FLASK_API_URL}/summarize`, {
+        video_url: mediaUrl,
       });
 
-      const { id } = response.data; // Get the job ID from the response
-
-      // Step 2: Check completion of processing
+      const { id } = flaskResponse.data;
       let completed = false;
+
       while (!completed) {
         const statusResponse = await axios.get(`${FLASK_API_URL}/status/${id}`);
         if (statusResponse.data.status === "completed") {
           completed = true;
-          const summary = statusResponse.data.summary; // Get the summary
-
-          // Step 3: Update the post with the summary
-          await setDoc(postRef, { summary }, { merge: true }); // Merge the summary into the existing post
+          const summary = statusResponse.data.summary;
+          await setDoc(postRef, { summary }, { merge: true });
+          console.log("Video summary added to post");
         } else {
           console.log("Processing video, checking status...");
-          await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait before checking again
+          await new Promise((resolve) => setTimeout(resolve, 5000));
         }
       }
     }
 
-    console.log("Post created");
+    // Notify admin if not an admin user
+    if (!isAdmin) {
+      await notifyAdmin(userData);
+    }
+
+    // Handle missing push token for admins
+    if (isAdmin && (!userData?.expoPushToken || userData.expoPushToken === "")) {
+      console.log("Admin push token missing. Requesting...");
+      await getOrRequestPushToken(userDocRef);
+    }
   } catch (error) {
-    console.error("Error creating post: ", error);
+    console.error("Error creating post:", error);
   }
 }

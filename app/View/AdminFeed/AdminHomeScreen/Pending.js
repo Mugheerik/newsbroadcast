@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -15,64 +15,80 @@ import { Ionicons } from "@expo/vector-icons";
 import { usePostsViewModel } from "../../../ModelView/pendingViewModel";
 import { Video } from "expo-av";
 
-const Header = () => (
-  <View style={styles.header}>
+// Constants
+const VIDEO_EXTENSIONS = [".mp4", ".mov", ".avi", ".mkv"];
+
+// Header Component
+// const Header = React.memo(() => (
+//   <View style={styles.header}>
+//     <Image
+//       source={{ uri: "https://example.com/your-image.png" }}
+//       style={styles.headerImage}
+//     />
+//     <TouchableOpacity style={styles.notificationIcon}>
+//       <Ionicons name="notifications-outline" size={24} color="black" />
+//     </TouchableOpacity>
+//   </View>
+// ));
+
+// User Info Component
+const UserInfo = React.memo(({ userInfo, time }) => (
+  <View style={styles.userInfo}>
     <Image
-      source={{ uri: "https://example.com/your-image.png" }} // Replace with your image URL
-      style={styles.headerImage}
+      source={{ uri: userInfo?.profilePicture || "https://example.com/default-avatar.png" }}
+      style={styles.profileImage}
     />
-    <TouchableOpacity style={styles.notificationIcon}>
-      <Ionicons name="notifications-outline" size={24} color="black" />
-    </TouchableOpacity>
+    <View style={styles.userText}>
+      <Text style={styles.username}>{userInfo?.name || "Unknown User"}</Text>
+      <Text style={styles.postTime}>{time}</Text>
+    </View>
   </View>
-);
+));
 
 const IndexScreen = () => {
   const { posts, approve, reject } = usePostsViewModel();
   const [userDetails, setUserDetails] = useState({});
   const [videoLoading, setVideoLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchUserDetails = async () => {
+  const fetchUserDetails = useCallback(async () => {
+    try {
       const userDetailsMap = {};
-      for (const post of posts) {
-        if (post.userId) {
-          const userRef = doc(db, "users", post.userId);
-          const userDoc = await getDoc(userRef);
-          if (userDoc.exists()) {
-            userDetailsMap[post.userId] = userDoc.data();
+      await Promise.all(
+        posts.map(async (post) => {
+          if (post.userId && !userDetailsMap[post.userId]) {
+            const userRef = doc(db, "users", post.userId);
+            const userDoc = await getDoc(userRef);
+            if (userDoc.exists()) {
+              userDetailsMap[post.userId] = userDoc.data();
+            }
           }
-        }
-      }
+        })
+      );
       setUserDetails(userDetailsMap);
-    };
-    fetchUserDetails();
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    }
   }, [posts]);
 
-  const isVideo = (url) => {
-    if (!url) return false;
-    const videoExtensions = [".mp4", ".mov", ".avi", ".mkv"];
-    const urlWithoutParams = url.split("?")[0];
-    return videoExtensions.some((ext) => urlWithoutParams.endsWith(ext));
-  };
+  useEffect(() => {
+    fetchUserDetails();
+  }, [fetchUserDetails]);
+
+  const isVideo = useCallback(
+    (url) => {
+      if (!url) return false;
+      const urlWithoutParams = url.split("?")[0];
+      return VIDEO_EXTENSIONS.some((ext) => urlWithoutParams.endsWith(ext));
+    },
+    []
+  );
 
   const renderItem = ({ item }) => {
     const userInfo = userDetails[item.userId] || {};
     return (
       <Link href={`/posts/${item.id}`} asChild>
         <View style={styles.card}>
-          <View style={styles.userInfo}>
-            <Image
-              source={{ uri: userInfo.profileImage }}
-              style={styles.profileImage}
-            />
-            <View style={styles.userText}>
-              <Text style={styles.username}>
-                {userInfo.name || "Unknown User"}
-              </Text>
-              <Text style={styles.postTime}>{item.time}</Text>
-            </View>
-          </View>
+          <UserInfo userInfo={userInfo} time={item.time} />
 
           <Text style={styles.cardTitle}>{item.title}</Text>
           <Text style={styles.cardDescription}>
@@ -90,9 +106,9 @@ const IndexScreen = () => {
                   shouldPlay={false}
                   onLoadStart={() => setVideoLoading(true)}
                   onLoad={() => setVideoLoading(false)}
-                  onError={() => {
+                  onError={(error) => {
                     setVideoLoading(false);
-                    console.error("Error loading video");
+                    console.error("Error loading video:", error);
                   }}
                 />
                 {videoLoading && (
@@ -100,7 +116,10 @@ const IndexScreen = () => {
                 )}
               </View>
             ) : (
-              <Image source={{ uri: item.mediaUrl }} style={styles.cardMedia} />
+              <Image
+                source={{ uri: item.mediaUrl }}
+                style={styles.cardMedia}
+              />
             ))}
 
           <View style={styles.buttonContainer}>
@@ -124,7 +143,7 @@ const IndexScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Header />
+      {/* <Header /> */}
       <FlatList
         data={posts}
         renderItem={renderItem}
@@ -135,6 +154,7 @@ const IndexScreen = () => {
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
