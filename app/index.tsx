@@ -51,15 +51,7 @@ const Index = () => {
     requestNotificationPermissions();
 
     // Handle incoming notifications
-    const notificationListener = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        setNotification(notification); // Store the latest notification
-        setNotifications((prevNotifications) => [
-          ...prevNotifications,
-          notification,
-        ]);
-      }
-    );
+   
 
     // Handle user responses to notifications
     const responseListener =
@@ -69,7 +61,7 @@ const Index = () => {
 
     // Cleanup listeners on unmount
     return () => {
-      notificationListener.remove();
+     
       responseListener.remove();
     };
   }, []);

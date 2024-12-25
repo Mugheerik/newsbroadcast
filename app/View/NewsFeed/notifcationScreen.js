@@ -5,11 +5,23 @@ import * as Notifications from "expo-notifications";
 const NotificationScreen = () => {
   const [notifications, setNotifications] = useState([]);
 
+  // Request permission for notifications
+  useEffect(() => {
+    const requestPermission = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") {
+        alert("Permission for notifications is required!");
+      }
+    };
+    requestPermission();
+  }, []);
+
   // Listen for incoming notifications
   useEffect(() => {
     // Handler to handle notification received
     const subscription = Notifications.addNotificationReceivedListener(
       (notification) => {
+        console.log('Notification received:', notification);  // Log the notification
         const newNotification = {
           id: notification.request.identifier, // Use identifier as a unique id
           title: notification.request.content.title,
