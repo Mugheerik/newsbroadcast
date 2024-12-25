@@ -58,126 +58,140 @@ const IndexScreen = () => {
     };
     fetchCategories();
   }, []);
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true);
+      let filteredPosts = [];
 
- useEffect(() => {
-  const fetchPosts = async () => {
-    setLoading(true);
-    let filteredPosts = [];
+      if (selectedCategory === "All" && selectedLocation === "All") {
+        // Fetch all posts from all categories (no filters)
+        const allPosts = [];
+        const unsubscribeFunctions = categories.map((category) => {
+          const postsRef = collection(
+            db,
+            "posts",
+            category.toLowerCase(),
+            "posts"
+          );
+          const q = query(postsRef, orderBy("createdAt", "desc"));
 
-    if (selectedCategory === "All" && selectedLocation === "All") {
-      // Fetch all posts from all categories (no filters)
-      const allPosts = [];
-      const unsubscribeFunctions = categories.map((category) => {
-        const postsRef = collection(
-          db,
-          "posts",
-          category.toLowerCase(),
-          "posts"
-        );
-        const q = query(postsRef, orderBy("createdAt", "desc"));
-
-        return onSnapshot(
-          q,
-          (querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-              allPosts.push({
-                id: doc.id,
-                category,
-                ...doc.data(),
+          return onSnapshot(
+            q,
+            (querySnapshot) => {
+              querySnapshot.forEach((doc) => {
+                const postData = doc.data();
+                const createdAt = postData.createdAt
+                  ? postData.createdAt.toMillis()
+                  : Date.now(); // Fallback to current time
+                allPosts.push({
+                  id: doc.id,
+                  category,
+                  ...postData,
+                  createdAt,
+                });
               });
-            });
-            allPosts.sort(
-              (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()
-            );
-            setPosts([...allPosts]);
-            setLoading(false);
-          },
-          (error) => {
-            console.error("Error fetching posts:", error);
-          }
-        );
-      });
-      return () =>
-        unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
-    } else if (selectedCategory === "All" && selectedLocation !== "All") {
-      // Fetch all posts from all categories but filter by selected location
-      const allPosts = [];
-      const unsubscribeFunctions = categories.map((category) => {
+              allPosts.sort((a, b) => b.createdAt - a.createdAt); // Sort by valid timestamp
+              setPosts([...allPosts]);
+              setLoading(false);
+            },
+            (error) => {
+              console.error("Error fetching posts:", error);
+            }
+          );
+        });
+        return () =>
+          unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+      } else if (selectedCategory === "All" && selectedLocation !== "All") {
+        // Fetch all posts from all categories but filter by selected location
+        const allPosts = [];
+        const unsubscribeFunctions = categories.map((category) => {
+          const postsRef = collection(
+            db,
+            "posts",
+            category.toLowerCase(),
+            "posts"
+          );
+          const q = query(postsRef, orderBy("createdAt", "desc"));
+
+          return onSnapshot(
+            q,
+            (querySnapshot) => {
+              querySnapshot.forEach((doc) => {
+                const postData = doc.data();
+                const createdAt = postData.createdAt
+                  ? postData.createdAt.toMillis()
+                  : Date.now(); // Fallback to current time
+                const post = {
+                  id: doc.id,
+                  category,
+                  ...postData,
+                  createdAt,
+                };
+                // Apply location filter here
+                if (
+                  selectedLocation === "All" ||
+                  post.location === selectedLocation
+                ) {
+                  allPosts.push(post);
+                }
+              });
+              allPosts.sort((a, b) => b.createdAt - a.createdAt); // Sort by valid timestamp
+              setPosts([...allPosts]);
+              setLoading(false);
+            },
+            (error) => {
+              console.error("Error fetching posts:", error);
+            }
+          );
+        });
+        return () =>
+          unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+      } else {
+        // Fetch posts based on selected category and location
         const postsRef = collection(
           db,
           "posts",
-          category.toLowerCase(),
+          selectedCategory.toLowerCase(),
           "posts"
         );
         const q = query(postsRef, orderBy("createdAt", "desc"));
 
-        return onSnapshot(
+        const unsubscribe = onSnapshot(
           q,
           (querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-              const post = {
-                id: doc.id,
-                category,
-                ...doc.data(),
-              };
-              // Apply location filter here
-              if (selectedLocation === "All" || post.location === selectedLocation) {
-                allPosts.push(post);
-              }
-            });
-            allPosts.sort(
-              (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()
-            );
-            setPosts([...allPosts]);
+            const categoryPosts = querySnapshot.docs
+              .map((doc) => {
+                const postData = doc.data();
+                const createdAt = postData.createdAt
+                  ? postData.createdAt.toMillis()
+                  : Date.now(); // Fallback to current time
+                return {
+                  id: doc.id,
+                  category: selectedCategory,
+                  ...postData,
+                  createdAt,
+                };
+              })
+              .filter(
+                (post) =>
+                  selectedLocation === "All" ||
+                  post.location === selectedLocation
+              );
+            setPosts(categoryPosts);
             setLoading(false);
           },
           (error) => {
             console.error("Error fetching posts:", error);
           }
         );
-      });
-      return () =>
-        unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
-    } else {
-      // Fetch posts based on selected category and location
-      const postsRef = collection(
-        db,
-        "posts",
-        selectedCategory.toLowerCase(),
-        "posts"
-      );
-      const q = query(postsRef, orderBy("createdAt", "desc"));
+        return () => unsubscribe();
+      }
+    };
 
-      const unsubscribe = onSnapshot(
-        q,
-        (querySnapshot) => {
-          const categoryPosts = querySnapshot.docs
-            .map((doc) => ({
-              id: doc.id,
-              category: selectedCategory,
-              ...doc.data(),
-            }))
-            .filter(
-              (post) =>
-                selectedLocation === "All" ||
-                post.location === selectedLocation
-            );
-          setPosts(categoryPosts);
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Error fetching posts:", error);
-        }
-      );
-      return () => unsubscribe();
+    if (categories.length > 0) {
+      fetchPosts();
     }
-  };
-
-  if (categories.length > 0) {
-    fetchPosts();
-  }
-}, [selectedCategory, selectedLocation, categories]);
-
+  }, [selectedCategory, selectedLocation, categories]);
 
   useEffect(() => {
     const fetchFavorites = async () => {

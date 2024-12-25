@@ -13,7 +13,7 @@ import axios from "axios";
 import * as Notifications from "expo-notifications";
 
 const storage = getStorage(app);
-const FLASK_API_URL = "https://9c33-34-168-16-201.ngrok-free.app";
+
 
 // Request notification permissions
 const requestNotificationPermissions = async () => {
@@ -21,6 +21,23 @@ const requestNotificationPermissions = async () => {
   if (status !== "granted") {
     alert("Permission not granted for notifications");
     throw new Error("Notifications permission not granted");
+  }
+};
+
+const getNgrokUrl = async () => {
+  try {
+    const configDocRef = doc(db, "config", "ngrok");
+    const configDoc = await getDoc(configDocRef);
+
+    if (!configDoc.exists()) throw new Error("ngrok URL not found in Firestore");
+
+    const ngrokData = configDoc.data();
+    if (!ngrokData?.url) throw new Error("ngrok URL is missing");
+
+    return ngrokData.url;
+  } catch (error) {
+    console.error("Error fetching ngrok URL:", error);
+    throw error;
   }
 };
 
@@ -43,7 +60,7 @@ const notifyAdmin = async (userData) => {
         to: adminData.expoPushToken,
         sound: "default",
         title: "New Post Created",
-        body: `${userData.name} has created a new post in the ${userData.category} category.`,
+        body: `${userData.name} has created a new post in the ${postData.category} category.`,
         data: { userId: userData.uid },
       };
 
@@ -71,6 +88,7 @@ export async function createPost(
   location
 ) {
   try {
+    const FLASK_API_URL = await getNgrokUrl();
     const auth = getAuth();
     const user = auth.currentUser;
 
@@ -122,7 +140,7 @@ export async function createPost(
     }
 
     // Process video if applicable
-    if (mediaType === "video") {
+    if (mediaType === "video"&&isAdmin!==true) {
       const flaskResponse = await axios.post(`${FLASK_API_URL}/summarize`, {
         video_url: mediaUrl,
       });

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
      borderWidth :1 ,
      borderColor :"#ddd",
      padding :10 ,
-     marginVertical :10 ,
+     marginVertical :5,
      borderRadius :5 ,
      backgroundColor :"#fff",
    },
@@ -295,12 +296,12 @@ const styles = StyleSheet.create({
    },
    previewImage:{
      width :windowWidth -40 ,
-     height :200 ,
+     height :150 ,
      borderRadius :8 ,
    },
    previewVideo:{
      width :windowWidth -40 ,
-     height :200 ,
+     height :150 ,
      borderRadius :8 ,
    },
    loadingIndicator:{

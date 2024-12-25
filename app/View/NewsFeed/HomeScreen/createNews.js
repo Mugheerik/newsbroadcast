@@ -268,10 +268,10 @@ const styles = StyleSheet.create({
      marginTop :20 ,
    },
    cancelButton:{
-     backgroundColor:"#dc3545",
+     backgroundColor:"black",
    },
    postButton:{
-     backgroundColor:"#28a745",
+     backgroundColor:"black",
    },
 });
 
