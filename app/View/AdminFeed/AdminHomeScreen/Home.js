@@ -112,10 +112,10 @@ const Myposts = () => {
                       style={styles.profileImage}
                     />
                   )}
-                  <Text style={styles.userName}>{item.userName}</Text>
-                  
+                 
+                 <Text style={styles.userName}>{item.category.toUpperCase()}</Text>
                 </View>
-
+               
                 {/* Promotional Title */}
                 <Text style={styles.cardTitle}>
                   {item.isPromotional ? "Promotional: " : ""}

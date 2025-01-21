@@ -41,7 +41,7 @@ const storage = getStorage(app);
 const cleanupExpiredPosts = async () => {
   try {
     const tenDaysAgo = new Date();
-    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 30);
 
     // Get all categories under the `posts` collection
     const categoriesSnapshot = await getDocs(collection(db, "posts"));
