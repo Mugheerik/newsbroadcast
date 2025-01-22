@@ -6,44 +6,51 @@ import {
   addDoc,
   getDoc,
   setDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import * as Notifications from "expo-notifications";
+import { Alert } from "react-native";
 
-// Fetch all unapproved posts across users
-export const fetchUnapprovedPosts = async () => {
-  const unapprovedPosts = [];
+// Fetch all unapproved posts across users with real-time updates
+export const fetchUnapprovedPosts = () => {
   try {
-    const querySnapshot = await getDocs(collection(db, "users"));
+    const unsubscribe = onSnapshot(collection(db, "users"), (querySnapshot) => {
+      const unapprovedPosts = [];
 
-    // Iterate through each user's document
-    for (const userDoc of querySnapshot.docs) {
-      const userUid = userDoc.id;
+      // Iterate through each user's document
+      querySnapshot.forEach((userDoc) => {
+        const userUid = userDoc.id;
 
-      // Fetch posts for the user
-      const postsSnapshot = await getDocs(
-        collection(db, "users", userUid, "posts")
-      );
+        // Fetch posts for the user
+        const postsRef = collection(db, "users", userUid, "posts");
+        const postsSnapshot = onSnapshot(postsRef, (snapshot) => {
+          snapshot.forEach((postDoc) => {
+            const postData = postDoc.data();
+            if (!postData.approved && !postData.rejected) {
+              unapprovedPosts.push({ id: postDoc.id, userUid, ...postData });
+            }
+          });
 
-      // Filter unapproved and unrejected posts
-      postsSnapshot.forEach((postDoc) => {
-        const postData = postDoc.data();
-        if (!postData.approved && !postData.rejected) {
-          unapprovedPosts.push({ id: postDoc.id, userUid, ...postData });
-        }
+          // Update the state with unapproved posts
+        });
+
+        return postsSnapshot;
       });
-    }
-    return unapprovedPosts;
+    });
+
+    // Return the unsubscribe function to stop listening to changes
+    return unsubscribe;
   } catch (error) {
     console.error("Error fetching unapproved posts:", error);
-    return [];
   }
 };
 
 // Approve a post and notify the user
 export const approvePost = async (adminUid, postId, postData) => {
-  const { userUid, id, ...restPostData } = postData; // Exclude post ID from data
-  const postRef = doc(db, "users", userUid, "posts", postId);
+  const userId = postData.userId;
+  const {  id, ...restPostData } = postData; // Exclude post ID from data
+  const postRef = doc(db, "users", userId, "posts", postId);
 
   try {
     // Update the post as approved
@@ -71,7 +78,8 @@ export const approvePost = async (adminUid, postId, postData) => {
     });
 
     // Notify the user about approval
-    await notifyUser(userUid, "Your post has been approved!");
+    await notifyUser(userId, "Your post has been approved!");
+    Alert.alert("Post Approved");
 
     console.log("Post approved and user notified successfully");
   } catch (error) {
@@ -81,8 +89,9 @@ export const approvePost = async (adminUid, postId, postData) => {
 
 // Reject a post and notify the user
 export const rejectPost = async (adminUid, postId, postData) => {
-  const { userUid, id, ...restPostData } = postData; // Exclude post ID from data
-  const postRef = doc(db, "users", userUid, "posts", postId);
+  const userId = postData.userId;
+  const {  id, ...restPostData } = postData; // Exclude post ID from data
+  const postRef = doc(db, "users", userId, "posts", postId);
 
   try {
     // Update the post as rejected and ensure it's not approved
@@ -96,8 +105,8 @@ export const rejectPost = async (adminUid, postId, postData) => {
     });
 
     // Notify the user about rejection
-    await notifyUser(userUid, "Your post has been rejected.");
-
+    await notifyUser(userId, "Your post has been rejected.");
+    Alert.alert("Post Rejected");
     console.log("Post rejected and user notified successfully");
   } catch (error) {
     console.error("Error rejecting post:", error);
@@ -105,9 +114,9 @@ export const rejectPost = async (adminUid, postId, postData) => {
 };
 
 // Notify a user via push notifications
-const notifyUser = async (userUid, message) => {
+const notifyUser = async (userId, message) => {
   try {
-    const userDocRef = doc(db, "users", userUid);
+    const userDocRef = doc(db, "users", userId);
     const userDoc = await getDoc(userDocRef);
     const userData = userDoc.data();
 
@@ -119,7 +128,7 @@ const notifyUser = async (userUid, message) => {
         sound: "default",
         title: "Post Status Update",
         body: message,
-        data: { userId: userUid },
+        data: { userId: userId },
       };
 
       // Send the notification

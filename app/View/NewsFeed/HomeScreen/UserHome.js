@@ -15,6 +15,7 @@ import {
 import { Link } from "expo-router";
 import { getAuth } from "firebase/auth";
 import {
+  Timestamp,
   collection,
   query,
   orderBy,
@@ -261,6 +262,8 @@ const IndexScreen = () => {
   };
 
   const renderPost = ({ item }) => {
+    let createdAt = moment(item.createdAt).format("YYYY-MM-DD HH:mm:ss");
+    
     return (
       <Link href={`/posts/${item.category}/posts/${item.id}`} asChild>
         <TouchableOpacity>
@@ -298,8 +301,9 @@ const IndexScreen = () => {
                 {item.title}
               </Text>
               <Text style={styles.author}>
-                By {item.userName} •{" "}
-                {moment(item.createdAt?.toDate()).fromNow()}
+              By {item.userName} • {createdAt}
+            
+        
               </Text>
               <Text style={styles.author}>{item.location}</Text>
               <View style={styles.actions}>
@@ -456,7 +460,7 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1, // Ensures consistent space for content
-    height: Dimensions.get("window").height * 2, // Set a fixed height for the list
+    height: Dimensions.get("window").height * 4, // Set a fixed height for the list
     paddingBottom: 15,
   },
   card: {

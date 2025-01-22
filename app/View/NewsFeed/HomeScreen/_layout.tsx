@@ -37,7 +37,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="myNews"
         options={{
-          
+          headerShown: false,
           tabBarIcon: ({ }) => <AntDesign size={28} name="user" color={"black"} />,
         }}
        

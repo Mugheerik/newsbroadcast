@@ -130,7 +130,7 @@ const PostPage = () => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.container}>
-        <Text style={styles.header}>Create a Post</Text>
+        <Text style={styles.header}>Create a News</Text>
 
         <TextInput
           style={styles.input}

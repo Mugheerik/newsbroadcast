@@ -9,146 +9,161 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Link } from "expo-router";
-import { getDoc, doc } from "firebase/firestore";
+import { getDocs, collection,query,where } from "firebase/firestore";
 import { db } from "../../../../firebaseConfig";
-import { Ionicons } from "@expo/vector-icons";
-import { usePostsViewModel } from "../../../ModelView/pendingViewModel";
 import { Video } from "expo-av";
+import moment from "moment";
+import { usePostsViewModel } from "../../../ModelView/pendingViewModel";
 
-// Constants
+// Constants for video file extensions
 const VIDEO_EXTENSIONS = [".mp4", ".mov", ".avi", ".mkv"];
 
-// Header Component
-// const Header = React.memo(() => (
-//   <View style={styles.header}>
-//     <Image
-//       source={{ uri: "https://example.com/your-image.png" }}
-//       style={styles.headerImage}
-//     />
-//     <TouchableOpacity style={styles.notificationIcon}>
-//       <Ionicons name="notifications-outline" size={24} color="black" />
-//     </TouchableOpacity>
-//   </View>
-// ));
-
 // User Info Component
-const UserInfo = React.memo(({ userInfo, time }) => (
+const UserInfo = React.memo(({ userInfo, time, category }) => (
   <View style={styles.userInfo}>
     <Image
-      source={{ uri: userInfo?.profilePicture || "https://example.com/default-avatar.png" }}
+      source={{
+        uri: userInfo?.profilePicture || "https://example.com/default-avatar.png",
+      }}
       style={styles.profileImage}
     />
     <View style={styles.userText}>
       <Text style={styles.username}>{userInfo?.name || "Unknown User"}</Text>
       <Text style={styles.postTime}>{time}</Text>
+      <Text style={styles.bannerText}>{category}</Text>
     </View>
   </View>
 ));
 
 const IndexScreen = () => {
-  const { posts, approve, reject } = usePostsViewModel();
+  const [posts, setPosts] = useState([]);
+  const {approve,reject}= usePostsViewModel();
   const [userDetails, setUserDetails] = useState({});
   const [videoLoading, setVideoLoading] = useState(false);
 
-  const fetchUserDetails = useCallback(async () => {
+  // Fetch Posts and User Details
+  const fetchPosts = useCallback(async () => {
     try {
+      const usersRef = collection(db, "users");
+      const usersSnapshot = await getDocs(usersRef);
+      const allPosts = [];
       const userDetailsMap = {};
-      await Promise.all(
-        posts.map(async (post) => {
-          if (post.userId && !userDetailsMap[post.userId]) {
-            const userRef = doc(db, "users", post.userId);
-            const userDoc = await getDoc(userRef);
-            if (userDoc.exists()) {
-              userDetailsMap[post.userId] = userDoc.data();
-            }
-          }
-        })
-      );
+
+      // Loop through users and fetch their posts
+      for (const userDoc of usersSnapshot.docs) {
+        const userId = userDoc.id;
+        const userData = userDoc.data();
+        userDetailsMap[userId] = userData;
+
+        const postsRef = collection(db, `users/${userId}/posts`);
+        const q = query(
+          postsRef,
+          where("approved", "==", false),
+          where("rejected", "==", false)
+        );
+        const postsSnapshot = await getDocs(q);
+
+        postsSnapshot.forEach((postDoc) => {
+          allPosts.push({ id: postDoc.id, userId, ...postDoc.data() });
+        });
+      }
+
+      setPosts(allPosts);
       setUserDetails(userDetailsMap);
     } catch (error) {
-      console.error("Error fetching user details:", error);
+      console.error("Error fetching posts:", error);
     }
-  }, [posts]);
+  }, []);
 
   useEffect(() => {
-    fetchUserDetails();
-  }, [fetchUserDetails]);
+    fetchPosts();
+  }, [fetchPosts]);
 
-  const isVideo = useCallback(
-    (url) => {
-      if (!url) return false;
-      const urlWithoutParams = url.split("?")[0];
-      return VIDEO_EXTENSIONS.some((ext) => urlWithoutParams.endsWith(ext));
-    },
-    []
-  );
+  // Function to check if the URL is a video
+  const isVideo = useCallback((url) => {
+    if (!url) return false;
+    const urlWithoutParams = url.split("?")[0];
+    return VIDEO_EXTENSIONS.some((ext) => urlWithoutParams.endsWith(ext));
+  }, []);
 
-  const renderItem = ({ item }) => {
-    const userInfo = userDetails[item.userId] || {};
-    return (
-      <Link href={`/posts/${item.id}`} asChild>
-        <View style={styles.card}>
-          <UserInfo userInfo={userInfo} time={item.time} />
+ 
+  // Render Post Item
+  const renderItem = useCallback(
+    ({ item }) => {
+      const userInfo = userDetails[item.userId] || {};
+      const createdAt = item.createdAt?.toDate
+        ? moment(item.createdAt.toDate()).format("YYYY-MM-DD HH:mm:ss")
+        : "Unknown time";
+      return (
+        <Link href={`/posts/${item.id}`} asChild>
+          <View style={styles.card}>
+            <UserInfo
+              userInfo={userInfo}
+              time={createdAt}
+              category={item.category?.toUpperCase() || "Uncategorized"}
+            />
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardDescription}>
+              {item.summary || item.description}
+            </Text>
 
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.cardDescription}>
-            {item.summary || item.description}
-          </Text>
+            {item.mediaUrl &&
+              (isVideo(item.mediaUrl) ? (
+                <View>
+                  <Video
+                    source={{ uri: item.mediaUrl }}
+                    style={styles.cardMedia}
+                    useNativeControls
+                    resizeMode="contain"
+                    shouldPlay={false}
+                    onLoadStart={() => setVideoLoading(true)}
+                    onLoad={() => setVideoLoading(false)}
+                    onError={(error) => {
+                      setVideoLoading(false);
+                      console.error("Error loading video:", error);
+                    }}
+                  />
+                  {videoLoading && (
+                    <ActivityIndicator size="large" color="#0000ff" />
+                  )}
+                </View>
+              ) : (
+                <Image source={{ uri: item.mediaUrl }} style={styles.cardMedia} />
+              ))}
 
-          {item.mediaUrl &&
-            (isVideo(item.mediaUrl) ? (
-              <View>
-                <Video
-                  source={{ uri: item.mediaUrl }}
-                  style={styles.cardMedia}
-                  useNativeControls
-                  resizeMode="contain"
-                  shouldPlay={false}
-                  onLoadStart={() => setVideoLoading(true)}
-                  onLoad={() => setVideoLoading(false)}
-                  onError={(error) => {
-                    setVideoLoading(false);
-                    console.error("Error loading video:", error);
-                  }}
-                />
-                {videoLoading && (
-                  <ActivityIndicator size="large" color="#0000ff" />
-                )}
-              </View>
-            ) : (
-              <Image
-                source={{ uri: item.mediaUrl }}
-                style={styles.cardMedia}
-              />
-            ))}
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.rejectButton}
-              onPress={() => reject(item.id, item)}
-            >
-              <Text style={styles.rejectButtonText}>Reject</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.approveButton}
-              onPress={() => approve(item.id, item)}
-            >
-              <Text style={styles.approveButtonText}>Approve</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.rejectButton}
+                onPress={() => reject(item.id,item,setPosts)}
+              >
+                <Text style={styles.rejectButtonText}>Reject</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.approveButton}
+                onPress={() => approve(item.id,item,setPosts)}
+              >
+                <Text style={styles.approveButtonText}>Approve</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Link>
-    );
-  };
+        </Link>
+      );
+    },
+    [userDetails, videoLoading, isVideo]
+  );
 
   return (
     <View style={styles.container}>
-      {/* <Header /> */}
       <FlatList
         data={posts}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.postList}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        windowSize={5}
+        removeClippedSubviews={true}
       />
     </View>
   );
@@ -159,23 +174,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 15,
-    backgroundColor: "#f8f8f8",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  headerImage: {
-    width: 100,
-    height: 40,
-    resizeMode: "contain",
-  },
-  notificationIcon: {
-    padding: 10,
   },
   card: {
     padding: 15,
@@ -207,6 +205,11 @@ const styles = StyleSheet.create({
   postTime: {
     fontSize: 12,
     color: "#777",
+  },
+  bannerText: {
+    color: "black",
+    fontWeight: "bold",
+    fontSize: 12,
   },
   cardTitle: {
     fontSize: 16,
