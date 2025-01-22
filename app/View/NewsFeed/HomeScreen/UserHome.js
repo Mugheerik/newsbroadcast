@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1, // Ensures consistent space for content
-    height: Dimensions.get("window").height * 2, // Set a fixed height for the list
+    height: Dimensions.get("window").height * 4, // Set a fixed height for the list
     paddingBottom: 15,
   },
   card: {

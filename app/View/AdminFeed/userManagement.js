@@ -28,10 +28,13 @@ const UserManagementScreen = () => {
     const fetchUsers = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "users")); // Adjust the collection path if needed
-        const usersList = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const usersList = querySnapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter((user) => user.status !== "Admin"); // Exclude users with the role "admin"
+
         setUsers(usersList);
       } catch (error) {
         console.error("Error fetching users:", error);

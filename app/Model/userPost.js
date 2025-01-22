@@ -60,7 +60,7 @@ const notifyAdmin = async (userData) => {
         to: adminData.expoPushToken,
         sound: "default",
         title: "New Post Created",
-        body: `${userData.name} has created a new post in the ${postData.category} category.`,
+        body: `${userData.name} has created a new News`,
         data: { userId: userData.uid },
       };
 
@@ -120,6 +120,7 @@ export async function createPost(
       likes: [],
       createdAt: serverTimestamp(),
       approved: isAdmin || false,
+      rejected: false,
       category,
       location,
       promotional: isAdmin || false,

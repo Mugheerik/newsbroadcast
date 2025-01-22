@@ -56,7 +56,11 @@ const IndexScreen = () => {
         userDetailsMap[userId] = userData;
 
         const postsRef = collection(db, `users/${userId}/posts`);
-        const q = query(postsRef, where("approved", "==", false));
+        const q = query(
+          postsRef,
+          where("approved", "==", false),
+          where("rejected", "==", false)
+        );
         const postsSnapshot = await getDocs(q);
 
         postsSnapshot.forEach((postDoc) => {
