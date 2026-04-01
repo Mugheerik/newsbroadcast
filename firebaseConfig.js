@@ -15,7 +15,7 @@ import {
 import { getStorage, ref, deleteObject } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC4hV9yEPvXN5fDx0pTPSUQjziTYhuyghI",
+  apiKey: "",
   authDomain: "region-times.firebaseapp.com",
   projectId: "region-times",
   storageBucket: "region-times.appspot.com",
